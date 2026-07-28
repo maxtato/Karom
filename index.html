@@ -72,6 +72,8 @@ const R=Math.round;
 const HUD_H=Math.round(34*K), MSG_H=0, BTN_H=Math.round(30*K);
 const CTRL_MIN=Math.round(104*K), CTRL_MAX=Math.round(340*K);
 let CTRL_H=150, TOTH=0, BOARD_Y=HUD_H, MSG_Y=0, CTRL_Y=0, BTN_Y=0;
+let PAD_H=Math.round(96*K);   /* hauteur du pave de visee */
+let MENU_H=0;                 /* hauteur offerte aux pages de menu */
 const JOY={cx:BUF/2, cy:0, r:Math.round(44*K), kx:0, ky:0};
 const TRK={x0:0, x1:0, y:0, h:Math.round(12*K)};
 const PWR={y:0};   /* frontiere entre la reglette de placement et le pave */
@@ -84,9 +86,12 @@ function metrics(){
   TRK.x0=BX+R(26*K); TRK.x1=BX+BW-R(26*K);   /* centree sur le plateau */
   TRK.y=CTRL_Y+R(8*K);
   PWR.y=TRK.y+R(20*K);
-  const zone=CTRL_H-Math.round(46*K);
-  JOY.r=Math.max(Math.round(26*K),Math.min(Math.round(52*K),Math.floor(zone/2)-Math.round(4*K)));
-  JOY.cy=CTRL_Y+Math.round(44*K)+Math.floor(zone/2);
+  /* le pave de visee prend toute la hauteur libre sous la reglette :
+     plus il est haut, plus le dosage de la force est fin */
+  const haut=R(44*K), bas=R(6*K), libre=Math.max(R(60*K),CTRL_H-haut-bas);
+  PAD_H=Math.max(R(96*K),Math.min(R(230*K),libre));
+  JOY.cy=CTRL_Y+haut+Math.floor(libre/2);
+  MENU_H=BW+CTRL_H+BTN_H;   /* du haut du plateau au bas de l'ecran */
 }
 
 const P={
@@ -224,8 +229,6 @@ let fireMode=0, aimX=0, aimAng=-Math.PI/2, aimPw=0;
 function majAim(){ aimAng = -Math.PI/2 - aimX*Math.PI; }
 let modeChoix=0;   /* 0 = un joueur, 1 = deux joueurs */
 let placeX=(BASE_X0+BASE_X1)/2;   /* placement choisi sur la ligne de base */
-const POW_PER_PX=1/21;
-const GAIN_POW=0.30;
 let bg=null;
 
 const cv=document.getElementById('cv');
@@ -242,7 +245,8 @@ const JF={j15:{step:27,cap:15,name:'Jersey15'}, j25:{step:41,cap:25,name:'Jersey
    exprimee en pixels de tampon, pour centrer juste */
 function jcaps(capsBuf,fam){
   const f=JF[fam||'j15'];
-  const m=Math.max(1,Math.floor(capsBuf*KTX*DPR/f.cap));
+  const m=Math.floor(capsBuf*KTX*DPR/f.cap);
+  if(m<1) return capsBuf;        /* sous un carreau : voir jfit */
   return (f.cap*m/DPR)/KTX;
 }
 /* ordonnee du haut de capitale pour centrer un texte dans une boite */
@@ -251,7 +255,14 @@ function jfit(fam,capsCss){
   /* on quantifie sur la grille de l'ecran, pas sur celle du CSS :
      le carreau doit faire un nombre entier de pixels ecran */
   const f=JF[fam];
-  const m=Math.max(1,Math.floor(capsCss*DPR/f.cap));
+  const m=Math.floor(capsCss*DPR/f.cap);
+  if(m<1){
+    /* la taille demandee est plus petite qu'un carreau : quantifier la
+       doublerait et le mot deborderait de son bouton. On perd le net,
+       on garde la mesure. */
+    tctx.font=(f.step*capsCss/f.cap)+'px '+f.name+',monospace';
+    return capsCss;
+  }
   tctx.font=(f.step*m/DPR)+'px '+f.name+',monospace';
   return f.cap*m/DPR;
 }
@@ -372,24 +383,54 @@ function toBoard(e){
 /* ===================== menu ===================== */
 function openMenu(){
   phase='menu'; page='titre'; joyDrag=null; aiPlan=null; bannerT=0;
+  rotT=0; rotGoal=0;            /* on quitte parfois une partie a deux, plateau retourne */
 }
 function openMode(){ page='mode'; }
 /* Un seul mode a l'ecran, on defile avec les fleches */
 /* L'accueil : un mode a la fois, START, puis les deux boutons */
+/* niveau et record du mode affiche, sous les puces de l'accueil */
+function lignesInfo(){
+  const L=[];
+  if(!cfg.soloStrict) L.push('NIVEAU : '+LEVELS[level].n);
+  const rec=records[modeId];
+  if(rec){
+    if(rec.tirs!==undefined)       L.push('RECORD : '+rec.tirs+' TIRS');
+    else if(rec.score!==undefined) L.push('RECORD : '+rec.score+' POINTS');
+    else if(rec.vic)               L.push('VICTOIRES : '+rec.vic);
+  }
+  if(!L.length) L.push('AUCUN RECORD');
+  return L;
+}
 function carrousel(){
-  const px=R(26*K), pw=BW-2*px, py=R(40*K), ph=R(122*K);
-  const yb=py+ph+R(12*K), hb=R(26*K);
-  const y2=yb+hb+R(7*K), h2=R(19*K), w2=Math.floor((pw-R(6*K))/2);
+  const px=R(26*K), pw=BW-2*px, ph=R(122*K);
+  const h2=R(19*K), w2=Math.floor((pw-R(6*K))/2);
+  const yTitre=R(8*K), hTitre=R(30*K);
+  /* le titre et la carte du mode tiennent dans le carre du plateau */
+  const py=yTitre+hTitre+Math.max(0,Math.floor((BW-yTitre-hTitre-ph)/2));
+  /* le lancement et ses annexes occupent la bande sous le plateau,
+     centres dedans : sur un ecran haut elle vaut le plateau entier */
+  const sous=Math.max(R(80*K), MENU_H-BW);
+  const hb=Math.max(R(26*K),Math.min(R(42*K),Math.floor(sous/6)));
+  const ec=Math.max(R(8*K),Math.min(R(22*K),Math.floor(sous/12)));
+  const ni=lignesInfo().length, hPuces=R(8*K), hInfo=ni*GH+(ni-1)*R(4*K);
+  const bloc=hb+ec+h2+ec+hPuces+ec+hInfo;
+  const yb=BW+Math.max(R(6*K),Math.floor((sous-bloc)/2));
+  const y2=yb+hb+ec, yp=y2+h2+ec;
   return {
+    titre:{y:yTitre},
     p:{x:px,y:py,w:pw,h:ph},
     gauche:{x:R(1*K), y:py+ph/2-R(24*K), w:R(24*K), h:R(48*K)},
     droite:{x:BW-R(25*K), y:py+ph/2-R(24*K), w:R(24*K), h:R(48*K)},
     start:{x:px,y:yb,w:pw,h:hb},
     regl:{x:px,y:y2,w:w2,h:h2},
     regles:{x:px+w2+R(6*K),y:y2,w:w2,h:h2},
-    puces:{y:y2+h2+R(9*K)}
+    puces:{y:yp+Math.floor(hPuces/2)},
+    info:{y:yp+hPuces+ec}
   };
 }
+/* les fenetres flottantes se centrent sur toute la page, sauf en pause
+   ou le jeu reste visible dessous */
+function hMenu(){ return pause ? BW : MENU_H; }
 function indexMode(){ const i=MODES.findIndex(m=>m.id===modeId); return i<0?0:i; }
 function defiler(d){ chargerMode(MODES[(indexMode()+d+MODES.length)%MODES.length].id); }
 function resumeRegles(){
@@ -415,7 +456,7 @@ function modeUI(){
   const dRow=R((n>=5?33:36)*K), step=R((n>=5?31:34)*K), hRow=R(18*K), hBtn=R(22*K);
   const finRows=dRow+(n-1)*step+hRow;
   const wh=finRows+R(12*K)+hBtn+R(10*K);
-  const wy=Math.round((BW-wh)/2);
+  const wy=Math.round((hMenu()-wh)/2);
   const by=wy+finRows+R(12*K), lw=BW-2*pad;
   if(pause){
     const g2=R(5*K), w3=Math.floor((lw-2*g2)/3);
@@ -849,7 +890,7 @@ function btnRects(){
 }
 function onDown(e){
   const c=toCanvas(e), z=zone(c);
-  if(z==='btn'){
+  if(z==='btn'&&phase!=='menu'){
     for(const b of btnRects()) if(c.cx>=b.x&&c.cx<=b.x+b.w){
       press={id:b.id,t:9};
       if(b.id==='back')  page='titre';
@@ -974,7 +1015,7 @@ function fire(){
   phase='roll'; aimPw=0;
 }
 function jetonManette(){
-  const marge=R(12*K), LP=BUF-2*marge, HP=R(96*K);
+  const marge=R(12*K), LP=BUF-2*marge, HP=PAD_H;
   const jr=R(13*K);
   const span=Math.round(HP/2)-jr-R(6*K), spanX=Math.round(LP/2)-jr-R(8*K);
   return {x:JOY.cx+aimX*spanX, y:JOY.cy-span+2*span*aimPw, r:jr, span, spanX};
@@ -986,7 +1027,8 @@ function joyTo(c){
   const course=Math.max(1,(BUF-2*R(12*K))/2);      /* demi-largeur du pave */
   aimX = Math.min(1,Math.max(-1, aimX+dx/course)); /* borne : on ne depasse pas les butees */
   majAim();
-  aimPw = Math.min(1,Math.max(0, aimPw+dy*POW_PER_PX*GAIN_POW));
+  /* la course en puissance vaut celle du jeton : il colle au doigt */
+  aimPw = Math.min(1,Math.max(0, aimPw+dy/Math.max(1,2*jetonManette().span)));
   joyDrag.px=c.cx; joyDrag.py=c.cy;
 }
 
@@ -1237,6 +1279,8 @@ function draw(){
   tctx.clearRect(0,0,CSSW,CSSH);
 
   drawHud(g);
+  /* une page de menu descend sous le plateau : on lui prepare tout le bas */
+  if(phase==='menu'){ g.fillStyle=P.bg; g.fillRect(0,CTRL_Y,BUF,TOTH-CTRL_Y); }
 
   g.save();
   TY=BOARD_Y; TX=BX;
@@ -1320,8 +1364,7 @@ function draw(){
   g.restore();
   TY=0; TX=0;
 
-  if(phase!=='menu') drawCtrl(g); else { g.fillStyle=P.bg; g.fillRect(0,CTRL_Y,BUF,CTRL_H); menuCtrl(g); }
-  drawButtons(g);
+  if(phase!=='menu'){ drawCtrl(g); drawButtons(g); }
   if(pause){                       /* la fenetre flotte, le reste s'efface */
     voile(g,0,CTRL_Y,BUF,TOTH-CTRL_Y);
   }
@@ -1522,16 +1565,21 @@ function optRectsLocal(){
 function optRects(){ return optRectsLocal().map(r=>({k:r.k,i:r.i,x:r.x+BX,y:r.y+BOARD_Y,w:r.w,h:r.h})); }
 
 function drawMenu(g){
-  g.fillStyle = page==='mode' ? 'rgba(20,17,14,.62)' : 'rgba(20,17,14,.90)';
-  g.fillRect(0,0,BW,BW);
-  hair(g,R(8*K),R(8*K),BW-R(16*K),BW-R(16*K),P.panel2);
-  if(page==='titre')     menuTitre(g);
-  else if(page==='mode') menuMode(g);
-  else                   menuRegles(g);
+  if(page==='titre'){
+    /* l'accueil garde le plateau en toile de fond, la carte du mode posee dessus */
+    g.fillStyle='rgba(20,17,14,.90)'; g.fillRect(0,0,BW,BW);
+    hair(g,R(8*K),R(8*K),BW-R(16*K),BW-R(16*K),P.panel2);
+    menuTitre(g);
+  } else {
+    /* une fenetre se centre sur la page entiere : le fond doit l'etre aussi,
+       sinon le plateau n'en habille que le haut */
+    g.fillStyle=P.bg; g.fillRect(-BX,0,BUF,hMenu());
+    if(page==='mode') menuMode(g); else menuRegles(g);
+  }
 }
 function menuTitre(g){
   const u=carrousel(), m=modeCourant(), i=indexMode();
-  jtext('KAROM',BW/2,R(8*K),P.accent,R(12*K),'j25','c');
+  jtext('KAROM',BW/2,u.titre.y,P.accent,R(12*K),'j25','c');
 
   g.fillStyle='rgba(10,8,6,.45)'; g.fillRect(u.p.x+R(3*K),u.p.y+R(4*K),u.p.w,u.p.h);
   g.fillStyle=P.panel; g.fillRect(u.p.x,u.p.y,u.p.w,u.p.h);
@@ -1570,10 +1618,13 @@ function menuTitre(g){
 
   const n=MODES.length, ec=R(10*K), x0=BW/2-(n-1)*ec/2;
   for(let k=0;k<n;k++) pcircle(g,Math.round(x0+k*ec),u.puces.y,R(k===i?3*K:2*K),k===i?P.accent:P.panel2);
+
+  /* niveau et record : sous les puces, dans la page, plus au fond de l'ecran */
+  lignesInfo().forEach((l,k)=>stextC(g,l,BW/2,u.info.y+k*(GH+R(4*K)),P.mute));
 }
 function menuMode(g){
   const u=modeUI();
-  voile(g,0,0,BW,BW);                                           /* arriere-plan voile */
+  voile(g,-BX,0,BUF,hMenu());                                   /* arriere-plan voile */
   g.fillStyle='rgba(10,8,6,.45)'; g.fillRect(u.wx+R(3*K),u.wy+R(4*K),u.ww,u.wh);
   g.fillStyle=P.panel;            g.fillRect(u.wx,u.wy,u.ww,u.wh);
   hair(g,u.wx,u.wy,u.ww,u.wh,P.panel2);
@@ -1599,8 +1650,12 @@ function menuMode(g){
   }
 }
 function reglesUI(){
-  const wx=R(16*K), ww=BW-2*wx, wy=R(38*K), wh=R(150*K), pad=wx+R(8*K);
-  const hBtn=R(22*K), by=wy+wh-R(10*K)-hBtn;
+  const wx=R(16*K), ww=BW-2*wx, pad=wx+R(8*K), hBtn=R(22*K);
+  /* la fenetre se taille sur son texte : les regles n'ont pas toutes la meme longueur */
+  const nl=wrap(RULES[rulePage].l,ww-R(24*K)).length;
+  const wh=R(38*K)+nl*(GH+R(3*K))+R(24*K)+GH+hBtn+R(10*K);
+  const wy=Math.max(R(10*K),Math.round((hMenu()-wh)/2));
+  const by=wy+wh-R(10*K)-hBtn;
   const w3=Math.floor((BW-2*pad-2*R(4*K))/4);
   return {wx,wy,ww,wh,
     prev:{x:pad,y:by,w:w3,h:hBtn},
@@ -1609,7 +1664,7 @@ function reglesUI(){
 }
 function menuRegles(g){
   const u=reglesUI(), r=RULES[rulePage];
-  voile(g,0,0,BW,BW);
+  voile(g,-BX,0,BUF,hMenu());
   g.fillStyle='rgba(10,8,6,.45)'; g.fillRect(u.wx+R(3*K),u.wy+R(4*K),u.ww,u.wh);
   g.fillStyle=P.panel;            g.fillRect(u.wx,u.wy,u.ww,u.wh);
   hair(g,u.wx,u.wy,u.ww,u.wh,P.panel2);
@@ -1658,7 +1713,7 @@ function drawCtrl(g){
   }
   /* manette : meme langage que les panneaux et les barres du jeu */
   const a=currentShot();
-  const marge=R(12*K), LP=BUF-2*marge, HP=R(96*K);
+  const marge=R(12*K), LP=BUF-2*marge, HP=PAD_H;
   const px0=marge, py0=Math.round(JOY.cy-HP/2);
   g.fillStyle=P.panel; g.fillRect(px0,py0,LP,HP);
   hair(g,px0,py0,LP,HP,P.panel2);
@@ -1891,21 +1946,6 @@ function powerBar(g,pow){
   g.fillStyle=P.pale;
   for(let i=0;i<R(4*K);i++) g.fillRect(x-R(4*K)-i,my-i,1,i*2+1);
 }
-function menuCtrl(g){
-  let lines;
-  if(page==='titre'){
-    lines = cfg.soloStrict ? [] : ['NIVEAU : '+LEVELS[level].n];
-    const rec=records[modeId];
-    if(rec){
-      if(rec.tirs!==undefined) lines.push('RECORD : '+rec.tirs+' TIRS');
-      else if(rec.score!==undefined) lines.push('RECORD : '+rec.score+' POINTS');
-      else if(rec.vic) lines.push('VICTOIRES : '+rec.vic);
-    }
-    if(!lines.length) lines=['KAROM  -  '+cfg.pions+' JETONS'];
-  } else lines = page==='regles' ? ['UTILISE LES FLECHES EN BAS'] : [''];
-  lines.forEach((l,i)=>stextC(g,l,BUF/2,CTRL_Y+Math.floor(CTRL_H/2)-R(8*K)+i*(GH+R(4*K)),P.mute));
-}
-
 /* ===================== HUD helpers ===================== */
 function banner(t){ bannerTxt=t; bannerT=58; }
 
