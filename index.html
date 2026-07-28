@@ -74,7 +74,10 @@ const CTRL_MIN=Math.round(104*K), CTRL_MAX=Math.round(340*K);
 const GAP_MAX=Math.round(24*K);  /* respiration maximale sous l'en-tete */
 let CTRL_H=150, TOTH=0, BOARD_Y=HUD_H, MSG_Y=0, CTRL_Y=0, BTN_Y=0;
 let GAP_B=0;                  /* de combien le plateau descend sous l'en-tete */
-let PAD_H=Math.round(96*K);   /* hauteur du pave de visee */
+let PAD_H=Math.round(96*K);   /* hauteur du pave, reglette comprise */
+let PAD_Y=0;                  /* haut du pave */
+let TRK_H=Math.round(34*K);   /* bandeau de la reglette, en haut du pave */
+let JOY_H=0;                  /* etage du jeton, sous la reglette */
 let MENU_H=0;                 /* hauteur offerte aux pages de menu */
 const JOY={cx:BUF/2, cy:0, r:Math.round(44*K), kx:0, ky:0};
 const TRK={x0:0, x1:0, y:0, h:Math.round(12*K)};
@@ -88,14 +91,20 @@ function metrics(){
   CTRL_H=reste-GAP_B;
   TOTH=HUD_H+GAP_B+BW+MSG_H+CTRL_H+BTN_H;
   BOARD_Y=HUD_H+GAP_B; MSG_Y=BOARD_Y+BW; CTRL_Y=MSG_Y+MSG_H; BTN_Y=CTRL_Y+CTRL_H;
-  TRK.x0=BX+R(26*K); TRK.x1=BX+BW-R(26*K);   /* centree sur le plateau */
-  TRK.y=CTRL_Y+R(8*K);
-  PWR.y=TRK.y+R(20*K);
-  /* le pave de visee occupe la hauteur libre sous la reglette, sans exces :
-     assez haut pour doser la force, assez court pour rester compact */
-  const haut=R(44*K), bas=R(6*K), libre=Math.max(R(50*K),CTRL_H-haut-bas);
-  PAD_H=Math.min(R(140*K),libre);
-  JOY.cy=CTRL_Y+haut+Math.floor(libre/2);
+  /* un seul pave : la reglette de placement en bandeau haut, le jeton dessous.
+     Les deux gestes du tir tiennent ainsi sous le meme pouce. */
+  const marge=R(8*K);
+  PAD_H=Math.max(R(80*K),Math.min(R(170*K),CTRL_H-2*marge));
+  PAD_Y=CTRL_Y+Math.floor((CTRL_H-PAD_H)/2);
+  TRK_H=Math.min(R(34*K),Math.floor(PAD_H*0.32));
+  const cote=R(12*K), LP=BUF-2*cote;
+  TRK.x0=cote+R(16*K); TRK.x1=cote+LP-R(16*K);
+  TRK.y=PAD_Y+Math.floor(TRK_H/2);
+  PWR.y=PAD_Y+TRK_H;                       /* frontiere reglette / jeton */
+  /* le jeton demarre franchement sous le bandeau, d'ou le retrait */
+  const retrait=Math.min(R(14*K),Math.floor((PAD_H-TRK_H)*0.12));
+  JOY_H=Math.max(R(40*K),PAD_H-TRK_H-retrait);
+  JOY.cy=PAD_Y+TRK_H+retrait+Math.floor(JOY_H/2);
   MENU_H=BW+CTRL_H+BTN_H;   /* du haut du plateau au bas de l'ecran */
 }
 
@@ -1020,9 +1029,9 @@ function fire(){
   phase='roll'; aimPw=0;
 }
 function jetonManette(){
-  const marge=R(12*K), LP=BUF-2*marge, HP=PAD_H;
+  const marge=R(12*K), LP=BUF-2*marge;
   const jr=R(13*K);
-  const span=Math.round(HP/2)-jr-R(6*K), spanX=Math.round(LP/2)-jr-R(8*K);
+  const span=Math.max(R(6*K),Math.floor(JOY_H/2)-jr-R(6*K)), spanX=Math.round(LP/2)-jr-R(8*K);
   return {x:JOY.cx+aimX*spanX, y:JOY.cy-span+2*span*aimPw, r:jr, span, spanX};
 }
 function joyTo(c){
@@ -1689,9 +1698,13 @@ function menuRegles(g){
 function drawCtrl(g){
   g.fillStyle=P.bg; g.fillRect(0,CTRL_Y,BUF,CTRL_H);
   const live = phase==='aim' && humanTurn() && bannerT===0 && rotT===rotGoal && !pause;
-  /* réglette de placement */
-  const tw2=TRK.x1-TRK.x0, ty=TRK.y+R(6*K);
-  g.fillStyle=P.panel; g.fillRect(TRK.x0,ty-R(2*K),tw2,R(4*K));
+  /* le pave d'abord : la reglette et le jeton sont deux etages du meme panneau */
+  const marge=R(12*K), LP=BUF-2*marge, px0=marge, py0=PAD_Y;
+  g.fillStyle=P.panel; g.fillRect(px0,py0,LP,PAD_H);
+  hair(g,px0,py0,LP,PAD_H,P.panel2);
+  /* réglette de placement, en bandeau haut */
+  const tw2=TRK.x1-TRK.x0, ty=TRK.y;
+  g.fillStyle=P.bg; g.fillRect(TRK.x0,ty-R(2*K),tw2,R(4*K));
   hair(g,TRK.x0-R(2*K),ty-R(4*K),tw2+R(4*K),R(8*K),P.panel2);
   let t=(placeX-BASE_X0)/(BASE_X1-BASE_X0);
   if(flipped()) t=1-t;
@@ -1716,15 +1729,14 @@ function drawCtrl(g){
     pcircle(g,kx,ty,R(6*K)-1,live?P.sBody:P.panel2);
     pring(g,kx,ty,R(3*K),P.sRed);
   }
+  /* trait de separation entre les deux etages */
+  g.fillStyle=P.panel2; g.fillRect(px0+R(8*K),PWR.y,LP-R(16*K),1);
   /* manette : meme langage que les panneaux et les barres du jeu */
   const a=currentShot();
-  const marge=R(12*K), LP=BUF-2*marge, HP=PAD_H;
-  const px0=marge, py0=Math.round(JOY.cy-HP/2);
-  g.fillStyle=P.panel; g.fillRect(px0,py0,LP,HP);
-  hair(g,px0,py0,LP,HP,P.panel2);
-  /* deux axes de reperage, ni plus */
+  const jbas=py0+PAD_H;
+  /* deux axes de reperage, ni plus : le vertical s'arrete au bandeau */
   g.fillStyle=P.panel2;
-  g.fillRect(JOY.cx,py0+R(9*K),1,HP-R(18*K));
+  g.fillRect(JOY.cx,PWR.y+R(8*K),1,jbas-PWR.y-R(16*K));
   g.fillRect(px0+R(9*K),JOY.cy,LP-R(18*K),1);
   /* crans de puissance sur les deux bords, comme la barre du dessus */
   const jm=jetonManette(), jr=jm.r, span=jm.span;
@@ -1737,8 +1749,9 @@ function drawCtrl(g){
   if(a&&a.pow>0.02){
     /* dans le repere du joueur, pas celui du plateau : le pave ne pivote pas */
     const vx=Math.cos(aimAng), vy=Math.sin(aimAng);
+    const hv=(vy<0 ? JOY.cy-PWR.y : jbas-JOY.cy)-R(8*K);
     const lim=Math.min((LP/2-R(8*K))/Math.max(0.001,Math.abs(vx)),
-                       (HP/2-R(8*K))/Math.max(0.001,Math.abs(vy)));
+                       hv/Math.max(0.001,Math.abs(vy)));
     for(let d=R(22*K); d<lim; d+=R(5*K)){
       g.fillStyle=P.accent;
       g.fillRect(Math.round(JOY.cx+vx*d),Math.round(JOY.cy+vy*d),1,1);
