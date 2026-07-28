@@ -1379,8 +1379,9 @@ function draw(){
   TY=0; TX=0;
 
   if(phase!=='menu'){ drawCtrl(g); drawButtons(g); }
-  if(pause){                       /* la fenetre flotte, le reste s'efface */
-    voile(g,0,CTRL_Y,BUF,TOTH-CTRL_Y);
+  if(pause){                       /* la fenetre flotte, tout le reste s'efface */
+    voile(g,0,0,BUF,HUD_H);                /* l'en-tete : les scores s'eteignent aussi */
+    voile(g,0,CTRL_Y,BUF,TOTH-CTRL_Y);     /* la zone de controle et la barre du bas */
   }
   if(aimPow!==null) powerBar(g,aimPow);
   if(phase==='over') drawBanner(g);
