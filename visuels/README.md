@@ -23,10 +23,9 @@ plateau. Chaque fichier est un master de 1024×1024, tracé sur une grille de
 
 ## Régénérer
 
-```
-# depuis ce dossier, avec fonts.css a cote (copie de deploy/fonts.css)
-# ouvrir icones.html dans un navigateur, chaque canvas #bigN porte le master
-```
+`icones.html` charge les polices depuis `../deploy/fonts.css` : ouvrir le
+fichier dans un navigateur suffit. Chaque canvas `#bigN` porte le master
+1024×1024, récupérable par `toDataURL()`.
 
 ## Ce qu'il reste à faire pour une vraie icône d'application
 
