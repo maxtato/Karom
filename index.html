@@ -1954,7 +1954,9 @@ function ligneRebond(g,d,ux,uy){
 
 function powCol(f){ return f<0.25?P.g1 : f<0.50?P.g2 : f<0.75?P.g3 : P.g4; }
 function powerBar(g,pow){
-  const bwd=R(8*K), x=BX+BW-R(12*K), y0=BOARD_Y+R(18*K), y1=BOARD_Y+BW-R(18*K), h=y1-y0;
+  /* fine, et posee au milieu de la bande de bois du bord droit */
+  const bwd=R(5*K), x=Math.round(BX+BW-R(FRAME*S)/2-bwd/2);
+  const y0=BOARD_Y+R(18*K), y1=BOARD_Y+BW-R(18*K), h=y1-y0;
   g.fillStyle=P.edge;   g.fillRect(x-2,y0-2,bwd+4,h+4);
   g.fillStyle=P.panel2; g.fillRect(x,y0,bwd,h);
   const n=24, sg=Math.floor(h/n);
@@ -1965,7 +1967,8 @@ function powerBar(g,pow){
   }
   const my=Math.round(y1-pow*h);
   g.fillStyle=P.pale;
-  for(let i=0;i<R(4*K);i++) g.fillRect(x-R(4*K)-i,my-i,1,i*2+1);
+  /* le repere se colle a la barre pour rester lui aussi dans le bois */
+  for(let i=0;i<R(3*K);i++) g.fillRect(x-1-i,my-i,1,i*2+1);
 }
 /* ===================== HUD helpers ===================== */
 function banner(t){ bannerTxt=t; bannerT=58; }
