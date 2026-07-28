@@ -1417,8 +1417,14 @@ function drawHud(g){
   const iy=y+Math.floor((h-R(28*K))/2);
   if(phase==='menu'){
     plate(g,mx,y,BUF-2*mx,h,P.panel);
-    jtext('KAROM',BUF/2-R(14*K),iy+R(6*K),P.accent,R(11*K),'j15','c');
-    pcircle(g,BUF-R(26*K),y+h/2,R(6*K),P.edge); pcircle(g,BUF-R(26*K),y+h/2,R(6*K)-1,P.qPiece);
+    /* l'accueil porte deja le nom en grand sur le plateau : la bande se tait,
+       et ne garde que la reine en pastille. Sur les autres pages, ou la
+       fenetre a son propre titre, le nom du jeu reste utile ici. */
+    const seul = page==='titre';
+    const dx = seul ? 0 : R(14*K);
+    if(!seul) jtext('KAROM',BUF/2-dx,iy+R(6*K),P.accent,R(11*K),'j15','c');
+    const qx = seul ? BUF/2 : BUF-R(26*K);
+    pcircle(g,qx,y+h/2,R(6*K),P.edge); pcircle(g,qx,y+h/2,R(6*K)-1,P.qPiece);
     return;
   }
   const H2=hudCases(), half=R(108*K);
