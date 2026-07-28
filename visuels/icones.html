@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Karom - pistes d'icone</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  body{margin:0;background:#0A0806;font-family:monospace;color:#EDE4D2}
+  .grille{display:flex;flex-wrap:wrap;gap:0;padding:0}
+  .cel{padding:18px 18px 10px;text-align:center}
+  canvas{display:block;image-rendering:pixelated}
+  .nom{font-size:13px;letter-spacing:1px;color:#7A6E5F;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="grille" id="grille"></div>
+<script>
+'use strict';
+const N = 128;                 /* grille de dessin : pixel art assume */
+const P = {
+  bg:'#14110E', panel:'#1E1A16', panel2:'#2A241E', edge:'#0A0806',
+  woodHi:'#7A5236', wood:'#4E3222', woodLo:'#2E1C10',
+  felt:'#F2CE87', feltHi:'#F8DDA1', feltLo:'#E2B368', feltSh:'#C89A57',
+  ink:'#20180F', red:'#C8362E', green:'#1E7A55',
+  wPiece:'#FFFAEA', wEdge:'#8A6231', bPiece:'#332742', bEdge:'#150E1E',
+  qPiece:'#D8382F', qEdge:'#7E1712',
+  sBody:'#17694A', sEdge:'#0C3A28', sRed:'#E8E0C8',
+  pale:'#EDE4D2', accent:'#3D9E72'
+};
+
+/* ---- primitives, reprises du jeu ---- */
+function pcircle(g,cx,cy,r,c){
+  cx=Math.round(cx); cy=Math.round(cy); r=Math.round(r); g.fillStyle=c;
+  for(let dy=-r;dy<=r;dy++){ const h=Math.floor(Math.sqrt(Math.max(0,r*r-dy*dy))+0.5); g.fillRect(cx-h,cy+dy,h*2+1,1); }
+}
+function pring(g,cx,cy,r,c,a0,a1){
+  cx=Math.round(cx); cy=Math.round(cy); r=Math.round(r);
+  a0=a0===undefined?0:a0; a1=a1===undefined?360:a1; g.fillStyle=c;
+  for(let a=a0;a<a1;a+=0.8){ const rd=a*Math.PI/180; g.fillRect(cx+Math.round(Math.cos(rd)*r), cy+Math.round(Math.sin(rd)*r),1,1); }
+}
+function pline(g,x0,y0,x1,y1,c){
+  g.fillStyle=c; x0=Math.round(x0); y0=Math.round(y0); x1=Math.round(x1); y1=Math.round(y1);
+  let dx=Math.abs(x1-x0), dy=Math.abs(y1-y0), sx=x0<x1?1:-1, sy=y0<y1?1:-1, err=dx-dy;
+  for(let n=0;n<600;n++){ g.fillRect(x0,y0,1,1); if(x0===x1&&y0===y1) break;
+    const e2=2*err; if(e2>-dy){ err-=dy; x0+=sx; } if(e2<dx){ err+=dx; y0+=sy; } }
+}
+function fleche(g,x,y,ux,uy,c,t){
+  g.fillStyle=c; t=t||3;
+  const hz=Math.abs(ux)>Math.abs(uy);
+  for(let i=0;i<t;i++){
+    const bx=Math.round(x-ux*i*1.5), by=Math.round(y-uy*i*1.5);
+    if(hz) g.fillRect(bx,by-i,1,i*2+1); else g.fillRect(bx-i,by,i*2+1,1);
+  }
+}
+function bruit(x,y){ let n=(x*73856093)^(y*19349663); n=(n<<13)^n;
+  return ((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/0x7fffffff; }
+function grain(g,x0,y0,x1,y1,d,clair,sombre){
+  for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){ const r=bruit(x,y);
+    if(r>1-d){ g.fillStyle=clair; g.fillRect(x,y,1,1); }
+    else if(r<d){ g.fillStyle=sombre; g.fillRect(x,y,1,1); } }
+}
+/* tapis raye comme le contreplaque du jeu */
+function tapis(g,x0,y0,x1,y1){
+  g.fillStyle=P.felt; g.fillRect(x0,y0,x1-x0,y1-y0);
+  for(let x=x0;x<x1;x++){
+    const n=Math.sin(x*0.9)*1.2+Math.sin(x*3.1)+Math.sin(x*0.21)*1.5;
+    if(n>1.6){ g.fillStyle=P.feltHi; g.fillRect(x,y0,1,y1-y0); }
+    else if(n<-1.9){ g.fillStyle=P.feltLo; g.fillRect(x,y0,1,y1-y0); }
+  }
+  grain(g,x0,y0,x1,y1,0.10,'rgba(255,252,236,.10)','rgba(90,60,20,.07)');
+}
+function bois(g,x0,y0,x1,y1){
+  g.fillStyle=P.wood; g.fillRect(x0,y0,x1-x0,y1-y0);
+  for(let i=x0;i<x1;i++){ const n=Math.sin(i*0.13)*1.9+Math.sin(i*0.7)*0.6;
+    if(n>1.4){ g.fillStyle='rgba(255,236,206,.06)'; g.fillRect(i,y0,1,y1-y0); }
+    else if(n<-1.6){ g.fillStyle='rgba(0,0,0,.10)'; g.fillRect(i,y0,1,y1-y0); } }
+  grain(g,x0,y0,x1,y1,0.13,'rgba(255,236,206,.07)','rgba(0,0,0,.10)');
+}
+/* rosace : huit branches alternees, comme au centre du plateau */
+function rosace(g,cx,cy,RO,fond){
+  const RI=Math.round(RO*24/26), br=Math.max(1,Math.round(RO*2.6/26));
+  pcircle(g,cx,cy,RO,P.ink); pcircle(g,cx,cy,RO-1,fond);
+  pring(g,cx,cy,RO-Math.max(1,Math.round(RO*2/26)),P.accent);
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4-Math.PI/2, col=(i%2)?P.accent:P.red;
+    const nx=-Math.sin(a), ny=Math.cos(a);
+    for(let t=br;t<RI;t++){
+      const w=Math.max(0,Math.round(br*(1-t/RI)));
+      const x=cx+Math.cos(a)*t, y=cy+Math.sin(a)*t;
+      g.fillStyle=col;
+      for(let o=-w;o<=w;o++) g.fillRect(Math.round(x+nx*o),Math.round(y+ny*o),1,1);
+      g.fillStyle=P.ink;
+      g.fillRect(Math.round(x+nx*(w+1)),Math.round(y+ny*(w+1)),1,1);
+      g.fillRect(Math.round(x-nx*(w+1)),Math.round(y-ny*(w+1)),1,1);
+    }
+  }
+  const cr=Math.max(2,Math.round(RO*6/26));
+  pcircle(g,cx,cy,cr,P.accent);
+  g.fillStyle=fond;
+  for(let i=0;i<8;i++){ const a=i*Math.PI/4-Math.PI/2;
+    g.fillRect(Math.round(cx+Math.cos(a)*(cr-2)),Math.round(cy+Math.sin(a)*(cr-2)),1,1); }
+}
+/* un jeton, avec son ombre portee */
+function jeton(g,cx,cy,r,corps,bord,eclat){
+  pcircle(g,cx+1,cy+2,r+1,'rgba(24,14,4,.16)');
+  pcircle(g,cx+1,cy+2,r,'rgba(24,14,4,.30)');
+  pcircle(g,cx,cy,r,bord);
+  pcircle(g,cx,cy,r-1,corps);
+  if(eclat){ g.fillStyle=eclat;
+    g.fillRect(Math.round(cx)-Math.round(r*0.28),Math.round(cy)-r+2,Math.round(r*0.55),1);
+    g.fillRect(Math.round(cx)-r+2,Math.round(cy)-Math.round(r*0.18),1,Math.round(r*0.36)); }
+}
+function trou(g,cx,cy,r){
+  pring(g,cx,cy,r+3,P.green);
+  pring(g,cx,cy,r+2,P.red);
+  pcircle(g,cx,cy,r+1,P.ink);
+  pcircle(g,cx,cy,r,'#171018');
+}
+
+/* ===================== les pistes ===================== */
+const PISTES = [];
+
+/* 1 - le plateau vu de dessus, simplifie pour rester lisible en petit */
+PISTES.push({nom:'PLATEAU', f(g){
+  const F=11;
+  g.fillStyle=P.woodLo; g.fillRect(0,0,N,N);
+  bois(g,1,1,N-1,N-1);
+  g.fillStyle='rgba(255,236,206,.06)'; g.fillRect(0,0,N,F); g.fillRect(0,0,F,N);
+  g.fillStyle='rgba(0,0,0,.12)'; g.fillRect(0,N-F,N,F); g.fillRect(N-F,0,F,N);
+  g.fillStyle=P.woodLo; g.fillRect(F-1,F-1,N-2*(F-1),N-2*(F-1));
+  tapis(g,F,F,N-F,N-F);
+  /* double carre : trait epais dehors, fin dedans, pour tenir en petit */
+  g.fillStyle=P.ink;
+  g.fillRect(24,24,N-48,2); g.fillRect(24,N-26,N-48,2);
+  g.fillRect(24,24,2,N-48); g.fillRect(N-26,24,2,N-48);
+  g.fillRect(32,32,N-64,1); g.fillRect(32,N-33,N-64,1);
+  g.fillRect(32,32,1,N-64); g.fillRect(N-33,32,1,N-64);
+  /* diagonales vers les trous */
+  for(const q of [[1,1],[-1,1],[1,-1],[-1,-1]]){
+    const cx=q[0]>0?0:N, cy=q[1]>0?0:N;
+    pline(g,cx+q[0]*24,cy+q[1]*24,cx+q[0]*54,cy+q[1]*54,P.ink);
+  }
+  rosace(g,N/2,N/2,24,P.felt);
+  for(const p of [[21,21],[N-21,21],[21,N-21],[N-21,N-21]]) trou(g,p[0],p[1],9);
+}});
+
+/* 2 - la reine posee sur la rosace */
+PISTES.push({nom:'LA REINE', f(g){
+  tapis(g,0,0,N,N);
+  bois(g,0,0,N,7); bois(g,0,N-7,N,N); bois(g,0,0,7,N); bois(g,N-7,0,7+N,N);
+  g.fillStyle=P.woodLo; g.fillRect(7,7,N-14,1); g.fillRect(7,N-8,N-14,1);
+  g.fillStyle=P.woodLo; g.fillRect(7,7,1,N-14); g.fillRect(N-8,7,1,N-14);
+  rosace(g,N/2,N/2,44,P.felt);
+  jeton(g,N/2,N/2,25,P.qPiece,P.qEdge,'rgba(255,255,255,.55)');
+}});
+
+/* 3 - le palet, l'objet que l'on lance */
+PISTES.push({nom:'LE PALET', f(g){
+  bois(g,0,0,N,N);
+  g.fillStyle=P.woodLo; g.fillRect(0,0,N,1); g.fillRect(0,N-1,N,1);
+  tapis(g,9,9,N-9,N-9);
+  g.fillStyle=P.ink; g.fillRect(8,8,N-16,1); g.fillRect(8,N-9,N-16,1);
+  g.fillStyle=P.ink; g.fillRect(8,8,1,N-16); g.fillRect(N-9,8,1,N-16);
+  jeton(g,N/2,N/2,38,P.sBody,P.sEdge,null);
+  pring(g,N/2,N/2,30,P.sRed);
+  pring(g,N/2,N/2,29,P.sRed);
+  pcircle(g,N/2,N/2,5,P.sRed);
+}});
+
+/* 4 - le mot, sur bois */
+PISTES.push({nom:'KAROM', f(g,gg){
+  bois(g,0,0,N,N);
+  g.fillStyle='rgba(0,0,0,.26)'; g.fillRect(0,0,N,N);
+  g.fillStyle=P.woodLo; g.fillRect(0,0,N,4); g.fillRect(0,N-4,N,4);
+  g.fillStyle=P.ink; g.fillRect(5,5,N-10,1); g.fillRect(5,N-6,N-10,1);
+  g.fillStyle=P.ink; g.fillRect(5,5,1,N-10); g.fillRect(N-6,5,1,N-10);
+  jeton(g,N/2-20,106,8,P.wPiece,P.wEdge,'rgba(255,255,255,.7)');
+  jeton(g,N/2,   106,8,P.qPiece,P.qEdge,'rgba(255,255,255,.5)');
+  jeton(g,N/2+20,106,8,P.bPiece,P.bEdge,'rgba(255,255,255,.22)');
+  gg.texte='K'; gg.hautTexte=26; gg.corps=82; gg.cap=50;
+}});
+
+/* 5 - les trois jetons du jeu */
+PISTES.push({nom:'LES JETONS', f(g){
+  tapis(g,0,0,N,N);
+  bois(g,0,0,N,8); bois(g,0,N-8,N,N); bois(g,0,0,8,N); bois(g,N-8,0,8+N,N);
+  g.fillStyle=P.ink; g.fillRect(8,8,N-16,1); g.fillRect(8,N-9,N-16,1);
+  g.fillStyle=P.ink; g.fillRect(8,8,1,N-16); g.fillRect(N-9,8,1,N-16);
+  jeton(g,44,50,22,P.wPiece,P.wEdge,'rgba(255,255,255,.75)');
+  jeton(g,86,50,22,P.bPiece,P.bEdge,'rgba(255,255,255,.22)');
+  jeton(g,65,88,22,P.qPiece,P.qEdge,'rgba(255,255,255,.5)');
+}});
+
+/* 6 - le tir : un jeton file vers la poche */
+PISTES.push({nom:'LE TIR', f(g){
+  tapis(g,0,0,N,N);
+  bois(g,0,0,N,14); bois(g,0,0,14,N); bois(g,N-14,0,14+N,N); bois(g,0,N-14,N,N);
+  g.fillStyle=P.woodLo; g.fillRect(0,14,N,1); g.fillRect(14,0,1,N);
+  g.fillStyle=P.woodLo; g.fillRect(0,N-15,N,1); g.fillRect(N-15,0,1,N);
+  /* le palet frappe le jeton, qui file vers la poche : trajectoire pointillee */
+  const pointille=(x0,y0,x1,y1,d0,d1)=>{
+    const dx=x1-x0, dy=y1-y0, L=Math.hypot(dx,dy);
+    for(let t=d0;t<L-d1;t+=1){ if(t%6>2) continue;
+      g.fillStyle='rgba(32,24,15,.70)';
+      g.fillRect(Math.round(x0+dx/L*t),Math.round(y0+dy/L*t),2,2); }
+  };
+  pointille(34,100,70,60,22,20);
+  pointille(70,60,98,30,20,20);
+  trou(g,98,30,15);
+  jeton(g,70,60,16,P.wPiece,P.wEdge,'rgba(255,255,255,.75)');
+  jeton(g,34,100,18,P.sBody,P.sEdge,null);
+  pring(g,34,100,13,P.sRed); pcircle(g,34,100,3,P.sRed);
+}});
+
+/* 7 - la rosace seule, plein cadre */
+PISTES.push({nom:'LA ROSACE', f(g){
+  tapis(g,0,0,N,N);
+  bois(g,0,0,N,6); bois(g,0,N-6,N,N); bois(g,0,0,6,N); bois(g,N-6,0,6+N,N);
+  rosace(g,N/2,N/2,56,P.felt);
+}});
+
+/* ---- rendu ---- */
+const grille=document.getElementById('grille');
+PISTES.forEach((p,i)=>{
+  const buf=document.createElement('canvas'); buf.width=N; buf.height=N;
+  const g=buf.getContext('2d');
+  const gg={texte:null};
+  p.f(g,gg);
+  if(gg.texte){                     /* le mot passe par la police du jeu */
+    g.textBaseline='alphabetic'; g.textAlign='center';
+    g.font=(gg.corps||41)+'px Jersey25, monospace';  /* pas exact : reste net */
+    g.fillStyle=P.accent;
+    g.fillText(gg.texte,N/2,gg.hautTexte+(gg.cap||25));
+  }
+  const cel=document.createElement('div'); cel.className='cel';
+  const cv=document.createElement('canvas'); cv.width=256; cv.height=256;
+  cv.style.width='256px'; cv.style.height='256px';
+  const c=cv.getContext('2d'); c.imageSmoothingEnabled=false;
+  c.drawImage(buf,0,0,256,256);
+  cv.id='ic'+i;
+  const nom=document.createElement('div'); nom.className='nom'; nom.textContent=(i+1)+'. '+p.nom;
+  cel.appendChild(cv); cel.appendChild(nom); grille.appendChild(cel);
+  /* version maitresse 1024, hors ecran, pour l'export */
+  const big=document.createElement('canvas'); big.width=1024; big.height=1024;
+  big.id='big'+i; big.style.position='absolute'; big.style.left='-4000px';
+  const bc=big.getContext('2d'); bc.imageSmoothingEnabled=false;
+  bc.drawImage(buf,0,0,1024,1024);
+  document.body.appendChild(big);
+});
+document.fonts.ready.then(()=>{ document.body.dataset.pret='1'; });
+</script>
+</body>
+</html>
