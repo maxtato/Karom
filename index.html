@@ -69,7 +69,7 @@ const MARG=Math.round(11*K);         /* marge laterale de part et d'autre du pla
 const BW=BUF-2*MARG, BX=MARG;        /* cote et abscisse du plateau */
 const S=BW/W;
 const R=Math.round;
-const HUD_H=Math.round(34*K), MSG_H=0, BTN_H=Math.round(30*K);
+const HUD_H=Math.round(40*K), MSG_H=0, BTN_H=Math.round(30*K);
 const CTRL_MIN=Math.round(104*K), CTRL_MAX=Math.round(340*K);
 const GAP_MAX=Math.round(24*K);  /* respiration maximale sous l'en-tete */
 let CTRL_H=150, TOTH=0, BOARD_Y=HUD_H, MSG_Y=0, CTRL_Y=0, BTN_Y=0;
@@ -1410,31 +1410,34 @@ function mmss(ms){
   return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');
 }
 function drawHud(g){
-  const y=R(2*K), h=HUD_H-R(6*K), pad=R(6*K);
+  /* mx : marge laterale, y : hauteur du haut des plaques, h : leur epaisseur.
+     iy replace le contenu au milieu de la plaque quand celle-ci s'epaissit. */
+  const mx=R(2*K), y=R(5*K), h=HUD_H-R(8*K), pad=R(6*K);
+  const iy=y+Math.floor((h-R(28*K))/2);
   if(phase==='menu'){
-    plate(g,y,y,BUF-2*y,h,P.panel);
-    jtext('KAROM',BUF/2-R(14*K),y+R(6*K),P.accent,R(11*K),'j15','c');
+    plate(g,mx,y,BUF-2*mx,h,P.panel);
+    jtext('KAROM',BUF/2-R(14*K),iy+R(6*K),P.accent,R(11*K),'j15','c');
     pcircle(g,BUF-R(26*K),y+h/2,R(6*K),P.edge); pcircle(g,BUF-R(26*K),y+h/2,R(6*K)-1,P.qPiece);
     return;
   }
   const H2=hudCases(), half=R(108*K);
-  const cases=[{c:H2.g,x:y,t:'W'},{c:H2.d,x:BUF-half-y,t:'B'}];
+  const cases=[{c:H2.g,x:mx,t:'W'},{c:H2.d,x:BUF-half-mx,t:'B'}];
   for(const s2 of cases){
     const on = s2.c.cote ? (turn===s2.c.cote&&phase!=='over') : false;
     plate(g,s2.x,y,half,h,on?P.accent:P.panel);
     const fg=on?P.edge:P.pale, sub2=on?'rgba(10,8,6,.60)':P.mute;
-    const dcx=s2.x+pad+R(4*K), dcy=y+R(8*K);
+    const dcx=s2.x+pad+R(4*K), dcy=iy+R(8*K);
     pcircle(g,dcx,dcy,R(4*K),on?P.edge:P.panel2);
     pcircle(g,dcx,dcy,R(4*K)-1,s2.c.col);
-    stext(g,s2.c.lab,s2.x+pad+R(12*K),y+R(4*K),fg);
-    stext(g,s2.c.who,s2.x+pad,y+R(18*K),sub2);
+    stext(g,s2.c.lab,s2.x+pad+R(12*K),iy+R(4*K),fg);
+    stext(g,s2.c.who,s2.x+pad,iy+R(18*K),sub2);
     const nb=String(s2.c.val), sp=s2.c.cote?scorePop[s2.c.cote]:0;
     const cap=sp>12?R(17*K):R(14*K), dy2=sp>0?-R(2*K):0;
     const col=sp>0?(on?P.edge:P.accent):fg;
-    jtext(nb,s2.x+half-pad,y+R(9*K)+dy2,col,cap,'j15','r');
+    jtext(nb,s2.x+half-pad,iy+R(9*K)+dy2,col,cap,'j15','r');
     if(sp>0){
       const rr=R(10*K)+Math.round((20-sp)*0.8*K);
-      pring(g,s2.x+half-pad-R(6*K),y+R(14*K),rr,on?'rgba(10,8,6,.35)':'rgba(61,158,114,.35)');
+      pring(g,s2.x+half-pad-R(6*K),iy+R(14*K),rr,on?'rgba(10,8,6,.35)':'rgba(61,158,114,.35)');
     }
   }
   /* case centrale : la regle qui compte dans ce mode */
@@ -1442,12 +1445,12 @@ function drawHud(g){
   if(H2.mil==='reine'){
     plate(g,qx,y,qw,h,queenState.owner?P.panel2:P.panel);
     const q=discs.find(d=>d.type==='Q');
-    pcircle(g,qc,y+R(8*K),R(4*K),P.qEdge);
-    pcircle(g,qc,y+R(8*K),R(4*K)-1,(q&&q.alive)?P.qPiece:P.panel2);
+    pcircle(g,qc,iy+R(8*K),R(4*K),P.qEdge);
+    pcircle(g,qc,iy+R(8*K),R(4*K)-1,(q&&q.alive)?P.qPiece:P.panel2);
     let qt='--';
     if(queenState.owner) qt = queenState.owner==='W'?'CLA':(mode==='solo'?'ORD':'FON');
     else if(queenState.pendingBy) qt='COUVRE';
-    stextC(g,qt,qc,y+R(16*K),queenState.owner?P.accent:P.mute);
+    stextC(g,qt,qc,iy+R(16*K),queenState.owner?P.accent:P.mute);
   } else if(H2.mil==='etoiles'){
     plate(g,qx,y,qw,h,P.panel);
     const e=cfg.etoiles||[0,0,0];
@@ -1455,22 +1458,22 @@ function drawHud(g){
     if(tirsFaits<=e[0]) acquis=3; else if(tirsFaits<=e[1]) acquis=2; else if(tirsFaits<=e[2]) acquis=1;
     for(let i=0;i<3;i++){
       const ex=qc+(i-1)*R(9*K);
-      pcircle(g,ex,y+R(8*K),R(3*K),i<acquis?cfg.teinte:P.panel2);
+      pcircle(g,ex,iy+R(8*K),R(3*K),i<acquis?cfg.teinte:P.panel2);
     }
-    stextC(g,'ETOILES',qc,y+R(16*K),P.mute);
+    stextC(g,'ETOILES',qc,iy+R(16*K),P.mute);
   } else if(H2.mil==='temps'){
     plate(g,qx,y,qw,h,tempsMs<15000?P.panel2:P.panel);
-    jtext(mmss(tempsMs),qc,y+R(3*K),tempsMs<15000?cfg.teinte:P.pale,R(11*K),'j15','c');
-    stextC(g,'TEMPS',qc,y+R(16*K),P.mute);
+    jtext(mmss(tempsMs),qc,iy+R(3*K),tempsMs<15000?cfg.teinte:P.pale,R(11*K),'j15','c');
+    stextC(g,'TEMPS',qc,iy+R(16*K),P.mute);
   } else if(H2.mil==='combo'){
     plate(g,qx,y,qw,h,P.panel);
     const mult = cfg.combo ? cfg.combo[Math.min(Math.max(comboDernier,1),cfg.combo.length)-1] : 1;
-    jtext('X'+mult,qc,y+R(3*K),comboDernier>1?cfg.teinte:P.mute,R(11*K),'j15','c');
-    stextC(g,'COMBO',qc,y+R(16*K),P.mute);
+    jtext('X'+mult,qc,iy+R(3*K),comboDernier>1?cfg.teinte:P.mute,R(11*K),'j15','c');
+    stextC(g,'COMBO',qc,iy+R(16*K),P.mute);
   } else {
     plate(g,qx,y,qw,h,P.panel);
-    jtext(String(cfg.cible||'--'),qc,y+R(3*K),P.pale,R(11*K),'j15','c');
-    stextC(g,'CIBLE',qc,y+R(16*K),P.mute);
+    jtext(String(cfg.cible||'--'),qc,iy+R(3*K),P.pale,R(11*K),'j15','c');
+    stextC(g,'CIBLE',qc,iy+R(16*K),P.mute);
   }
 }
 
