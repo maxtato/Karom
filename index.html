@@ -1231,8 +1231,17 @@ function buildBg(){
 
   /* ---- KAROM en petit, centre dans le couloir entre les deux traits ---- */
   const tw2=pw('KAROM'), tx=Math.round(M-tw2/2);
-  ptext(g,'KAROM',tx,Math.round(((o0+2)+(i0-1))/2-PH/2),P.ink);
-  ptext(g,'KAROM',tx,Math.round(((i1)+(o1-2))/2-PH/2),P.ink);
+  const tyHaut=Math.round(((o0+2)+(i0-1))/2-PH/2);
+  const tyBas =Math.round(((i1)+(o1-2))/2-PH/2);
+  ptext(g,'KAROM',tx,tyHaut,P.ink);
+  ptext(g,'KAROM',tx,tyBas,P.ink);
+  /* une petite fleche de chaque cote du mot, pointes vers l'exterieur,
+     dans l'esprit des reperes deja peints sur le plateau */
+  for(const ty of [tyHaut,tyBas]){
+    const ym=ty+Math.floor(PH/2), ecart=R(7*K);
+    arrow(g, tx-ecart,           ym, -1, 0, P.ink);
+    arrow(g, tx+tw2+ecart-1,     ym,  1, 0, P.ink);
+  }
 
   /* ---- pastilles rouges aux angles des deux lignes ---- */
   if(ART.dots){
