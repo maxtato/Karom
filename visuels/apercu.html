@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>Karom - sur l'ecran d'accueil</title>
+<style>
+ body{margin:0;background:linear-gradient(160deg,#2A2438,#141018 60%,#0C0A10);
+      font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#fff;padding:26px 18px 34px}
+ h1{font-size:13px;font-weight:500;letter-spacing:2px;color:#8d86a0;margin:0 0 22px;text-transform:uppercase}
+ .rangee{display:flex;flex-wrap:wrap;gap:26px 22px}
+ .app{width:78px;text-align:center}
+ .app img{width:78px;height:78px;border-radius:18px;display:block;
+          box-shadow:0 3px 10px rgba(0,0,0,.5)}
+ .app span{display:block;font-size:11.5px;margin-top:6px;color:#e8e6f0;
+           text-shadow:0 1px 2px rgba(0,0,0,.6)}
+ .num{font-size:10px;color:#8d86a0;margin-top:1px}
+</style></head><body>
+<h1>Taille reelle sur un ecran d'accueil</h1>
+<div class="rangee" id="r"></div>
+<script>
+const fic=['plateau','reine','palet','monogramme','jetons','choc','rosace'];
+const noms=['PLATEAU','LA REINE','LE PALET','MONOGRAMME','LES JETONS','LE CHOC','LA ROSACE'];
+const r=document.getElementById('r');
+noms.forEach((n,i)=>{
+  const d=document.createElement('div'); d.className='app';
+  d.innerHTML='<img src="icone-'+(i+1)+'-'+fic[i]+'.png" alt=""><span>Karom</span><div class="num">'+(i+1)+'. '+n+'</div>';
+  r.appendChild(d);
+});
+</script></body></html>

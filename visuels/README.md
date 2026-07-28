@@ -8,12 +8,12 @@ plateau. Chaque fichier est un master de 1024×1024, tracé sur une grille de
 
 | # | Fichier | Ce que ça raconte |
 |---|---------|-------------------|
-| 1 | `icone-1-plateau.png` | Le plateau vu de dessus : cadre, tapis, quatre trous, rosace. Le plus explicite, le plus chargé. |
+| 1 | `icone-1-plateau.png` | Le plateau vu de dessus : cadre, tapis, quatre trous, rosace, pastilles rouges. Le plus explicite. |
 | 2 | `icone-2-reine.png` | La reine rouge posée sur la rosace. Lecture immédiate en petit. |
 | 3 | `icone-3-palet.png` | Le palet vert, l'objet que l'on lance. Le plus simple. |
 | 4 | `icone-4-monogramme.png` | Un K en Jersey sur bois, avec les trois jetons. |
 | 5 | `icone-5-jetons.png` | Les trois jetons du jeu : clair, foncé, reine. |
-| 6 | `icone-6-tir.png` | Le palet frappe un jeton qui file vers la poche. |
+| 6 | `icone-6-choc.png` | L'instant du choc : le palet frappe, l'étoile d'impact éclate, le jeton part. Sans poche. |
 | 7 | `icone-7-rosace.png` | La rosace seule, plein cadre. Emblème abstrait. |
 
 - `planche.png` — les sept côte à côte, en grand

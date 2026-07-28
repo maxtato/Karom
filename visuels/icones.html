@@ -129,19 +129,24 @@ PISTES.push({nom:'PLATEAU', f(g){
   g.fillStyle='rgba(0,0,0,.12)'; g.fillRect(0,N-F,N,F); g.fillRect(N-F,0,F,N);
   g.fillStyle=P.woodLo; g.fillRect(F-1,F-1,N-2*(F-1),N-2*(F-1));
   tapis(g,F,F,N-F,N-F);
-  /* double carre : trait epais dehors, fin dedans, pour tenir en petit */
+  /* un seul carre, epais : le second trait se perdait a la reduction */
   g.fillStyle=P.ink;
-  g.fillRect(24,24,N-48,2); g.fillRect(24,N-26,N-48,2);
-  g.fillRect(24,24,2,N-48); g.fillRect(N-26,24,2,N-48);
-  g.fillRect(32,32,N-64,1); g.fillRect(32,N-33,N-64,1);
-  g.fillRect(32,32,1,N-64); g.fillRect(N-33,32,1,N-64);
-  /* diagonales vers les trous */
+  g.fillRect(26,26,N-52,2); g.fillRect(26,N-28,N-52,2);
+  g.fillRect(26,26,2,N-52); g.fillRect(N-28,26,2,N-52);
+  /* diagonales, du carre vers chaque trou */
   for(const q of [[1,1],[-1,1],[1,-1],[-1,-1]]){
     const cx=q[0]>0?0:N, cy=q[1]>0?0:N;
-    pline(g,cx+q[0]*24,cy+q[1]*24,cx+q[0]*54,cy+q[1]*54,P.ink);
+    pline(g,cx+q[0]*26,cy+q[1]*26,cx+q[0]*50,cy+q[1]*50,P.ink);
   }
-  rosace(g,N/2,N/2,24,P.felt);
-  for(const p of [[21,21],[N-21,21],[21,N-21],[N-21,N-21]]) trou(g,p[0],p[1],9);
+  /* les deux pastilles rouges de chaque angle, comme sur le vrai plateau */
+  for(const q of [[1,1],[-1,1],[1,-1],[-1,-1]]){
+    const cx=q[0]>0?27:N-27, cy=q[1]>0?27:N-27;
+    for(const d of [[cx+q[0]*7,cy],[cx,cy+q[1]*7]]){
+      pcircle(g,d[0],d[1],3,P.ink); pcircle(g,d[0],d[1],2,P.red);
+    }
+  }
+  rosace(g,N/2,N/2,27,P.felt);
+  for(const p of [[21,21],[N-21,21],[21,N-21],[N-21,N-21]]) trou(g,p[0],p[1],10);
 }});
 
 /* 2 - la reine posee sur la rosace */
@@ -191,25 +196,54 @@ PISTES.push({nom:'LES JETONS', f(g){
   jeton(g,65,88,22,P.qPiece,P.qEdge,'rgba(255,255,255,.5)');
 }});
 
-/* 6 - le tir : un jeton file vers la poche */
-PISTES.push({nom:'LE TIR', f(g){
+/* 6 - le tir : l'instant du choc, sans poche */
+PISTES.push({nom:'LE CHOC', f(g){
   tapis(g,0,0,N,N);
-  bois(g,0,0,N,14); bois(g,0,0,14,N); bois(g,N-14,0,14+N,N); bois(g,0,N-14,N,N);
-  g.fillStyle=P.woodLo; g.fillRect(0,14,N,1); g.fillRect(14,0,1,N);
-  g.fillStyle=P.woodLo; g.fillRect(0,N-15,N,1); g.fillRect(N-15,0,1,N);
-  /* le palet frappe le jeton, qui file vers la poche : trajectoire pointillee */
-  const pointille=(x0,y0,x1,y1,d0,d1)=>{
-    const dx=x1-x0, dy=y1-y0, L=Math.hypot(dx,dy);
-    for(let t=d0;t<L-d1;t+=1){ if(t%6>2) continue;
-      g.fillStyle='rgba(32,24,15,.70)';
-      g.fillRect(Math.round(x0+dx/L*t),Math.round(y0+dy/L*t),2,2); }
+  bois(g,0,0,N,10); bois(g,0,0,10,N); bois(g,N-10,0,10+N,N); bois(g,0,N-10,N,N);
+  g.fillStyle=P.woodLo; g.fillRect(0,10,N,1); g.fillRect(10,0,1,N);
+  g.fillStyle=P.woodLo; g.fillRect(0,N-11,N,1); g.fillRect(N-11,0,1,N);
+
+  /* l'axe du coup : du palet, en bas a gauche, vers le jeton chasse */
+  const ax=0.60, ay=-0.80;                 /* direction du tir, normalisee */
+  const cx=62, cy=66;                      /* point de contact */
+
+  /* elan du palet : trainee pointillee derriere lui */
+  for(let t=42;t<64;t++){ if(t%6>2) continue;
+    g.fillStyle='rgba(32,24,15,.55)';
+    g.fillRect(Math.round(cx-ax*t),Math.round(cy-ay*t),2,2); }
+
+  /* le choc : une etoile pleine, etiree dans l'axe du coup.
+     Pleine et non rayonnante, sinon elle disparait a la reduction. */
+  const rayon=(a)=>{
+    const ux=Math.cos(a), uy=Math.sin(a);
+    const aligne=Math.abs(ux*ax+uy*ay);            /* 1 dans l'axe, 0 en travers */
+    const dehors=17+15*aligne, dedans=9;
+    return dedans+(dehors-dedans)*Math.pow(Math.abs(Math.cos(4*a)),1.3);
   };
-  pointille(34,100,70,60,22,20);
-  pointille(70,60,98,30,20,20);
-  trou(g,98,30,15);
-  jeton(g,70,60,16,P.wPiece,P.wEdge,'rgba(255,255,255,.75)');
-  jeton(g,34,100,18,P.sBody,P.sEdge,null);
-  pring(g,34,100,13,P.sRed); pcircle(g,34,100,3,P.sRed);
+  for(let a=0;a<Math.PI*2;a+=0.004){               /* balayage : remplit l'etoile */
+    const ux=Math.cos(a), uy=Math.sin(a), r=rayon(a);
+    g.fillStyle=P.ink;
+    g.fillRect(Math.round(cx+ux*(r+1)),Math.round(cy+uy*(r+1)),1,1);
+    for(let t=0;t<r;t+=0.5){
+      g.fillStyle = t<r-3 ? P.pale : P.sRed;
+      g.fillRect(Math.round(cx+ux*t),Math.round(cy+uy*t),1,1);
+    }
+  }
+
+  /* le jeton chasse, deja parti dans l'axe, avec ses lignes de vitesse */
+  const jx=Math.round(cx+ax*44), jy=Math.round(cy+ay*44);
+  for(const o of [-11,0,11]){
+    const nx=-ay, ny=ax;
+    for(let t=16;t<30;t++){ if(t%5>2) continue;
+      g.fillStyle='rgba(32,24,15,.45)';
+      g.fillRect(Math.round(jx-ax*t+nx*o),Math.round(jy-ay*t+ny*o),2,2); }
+  }
+  jeton(g,jx,jy,17,P.wPiece,P.wEdge,'rgba(255,255,255,.75)');
+
+  /* le palet, en retrait sur l'axe */
+  const px=Math.round(cx-ax*40), py=Math.round(cy-ay*40);
+  jeton(g,px,py,18,P.sBody,P.sEdge,null);
+  pring(g,px,py,13,P.sRed); pcircle(g,px,py,3,P.sRed);
 }});
 
 /* 7 - la rosace seule, plein cadre */
