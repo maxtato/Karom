@@ -1238,7 +1238,7 @@ function buildBg(){
   /* une petite fleche de chaque cote du mot, pointes vers l'exterieur,
      dans l'esprit des reperes deja peints sur le plateau */
   for(const ty of [tyHaut,tyBas]){
-    const ym=ty+Math.floor(PH/2), ecart=R(7*K);
+    const ym=ty+Math.floor(PH/2), ecart=R(10*K);
     arrow(g, tx-ecart,           ym, -1, 0, P.ink);
     arrow(g, tx+tw2+ecart-1,     ym,  1, 0, P.ink);
   }
