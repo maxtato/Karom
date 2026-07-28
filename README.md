@@ -28,4 +28,15 @@ Aucune dépendance, aucun build : ouvrir `index.html` dans un navigateur.
 
 ## Déploiement
 
-Site statique, déployé sur Vercel tel quel.
+Le site Vercel sert un `index.html` minimal qui charge les deux artefacts
+du dossier `deploy/` (polices et JS minifié) depuis jsDelivr, épinglés sur
+un commit précis, avec repli sur `raw.githubusercontent.com`. Pour publier
+une nouvelle version :
+
+1. regénérer `deploy/game.min.js` à partir du script de `index.html`
+   (`terser --compress --mangle`) ;
+2. commit + push, relever le SHA ;
+3. mettre à jour la constante `SHA` de la page déployée sur Vercel.
+
+Le `index.html` à la racine reste la version canonique : un seul fichier
+autonome, jouable hors ligne en l'ouvrant dans un navigateur.
