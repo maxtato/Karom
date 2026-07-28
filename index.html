@@ -71,7 +71,9 @@ const S=BW/W;
 const R=Math.round;
 const HUD_H=Math.round(34*K), MSG_H=0, BTN_H=Math.round(30*K);
 const CTRL_MIN=Math.round(104*K), CTRL_MAX=Math.round(340*K);
+const GAP_MAX=Math.round(24*K);  /* respiration maximale sous l'en-tete */
 let CTRL_H=150, TOTH=0, BOARD_Y=HUD_H, MSG_Y=0, CTRL_Y=0, BTN_Y=0;
+let GAP_B=0;                  /* de combien le plateau descend sous l'en-tete */
 let PAD_H=Math.round(96*K);   /* hauteur du pave de visee */
 let MENU_H=0;                 /* hauteur offerte aux pages de menu */
 const JOY={cx:BUF/2, cy:0, r:Math.round(44*K), kx:0, ky:0};
@@ -80,16 +82,19 @@ const PWR={y:0};   /* frontiere entre la reglette de placement et le pave */
 function metrics(){
   const vw=Math.max(1,window.innerWidth), vh=Math.max(1,window.innerHeight);
   const want=Math.round(BUF*vh/vw)-HUD_H-BW-MSG_H-BTN_H;
-  CTRL_H=Math.max(CTRL_MIN,Math.min(CTRL_MAX,want));
-  TOTH=HUD_H+BW+MSG_H+CTRL_H+BTN_H;
-  BOARD_Y=HUD_H; MSG_Y=HUD_H+BW; CTRL_Y=MSG_Y+MSG_H; BTN_Y=CTRL_Y+CTRL_H;
+  const reste=Math.max(CTRL_MIN,Math.min(CTRL_MAX+GAP_MAX,want));
+  /* le plateau se decolle de l'en-tete des qu'il y a de quoi */
+  GAP_B=Math.max(0,Math.min(GAP_MAX,reste-CTRL_MIN));
+  CTRL_H=reste-GAP_B;
+  TOTH=HUD_H+GAP_B+BW+MSG_H+CTRL_H+BTN_H;
+  BOARD_Y=HUD_H+GAP_B; MSG_Y=BOARD_Y+BW; CTRL_Y=MSG_Y+MSG_H; BTN_Y=CTRL_Y+CTRL_H;
   TRK.x0=BX+R(26*K); TRK.x1=BX+BW-R(26*K);   /* centree sur le plateau */
   TRK.y=CTRL_Y+R(8*K);
   PWR.y=TRK.y+R(20*K);
-  /* le pave de visee prend toute la hauteur libre sous la reglette :
-     plus il est haut, plus le dosage de la force est fin */
-  const haut=R(44*K), bas=R(6*K), libre=Math.max(R(60*K),CTRL_H-haut-bas);
-  PAD_H=Math.max(R(96*K),Math.min(R(230*K),libre));
+  /* le pave de visee occupe la hauteur libre sous la reglette, sans exces :
+     assez haut pour doser la force, assez court pour rester compact */
+  const haut=R(44*K), bas=R(6*K), libre=Math.max(R(50*K),CTRL_H-haut-bas);
+  PAD_H=Math.min(R(140*K),libre);
   JOY.cy=CTRL_Y+haut+Math.floor(libre/2);
   MENU_H=BW+CTRL_H+BTN_H;   /* du haut du plateau au bas de l'ecran */
 }
@@ -405,12 +410,12 @@ function carrousel(){
   const px=R(26*K), pw=BW-2*px, ph=R(122*K);
   const h2=R(19*K), w2=Math.floor((pw-R(6*K))/2);
   const yTitre=R(8*K), hTitre=R(30*K);
-  /* le titre et la carte du mode tiennent dans le carre du plateau */
-  const py=yTitre+hTitre+Math.max(0,Math.floor((BW-yTitre-hTitre-ph)/2));
+  /* la carte du mode se pose vers le bas du plateau, sous le titre */
+  const py=Math.max(yTitre+hTitre, BW-ph-R(20*K));
   /* le lancement et ses annexes occupent la bande sous le plateau,
      centres dedans : sur un ecran haut elle vaut le plateau entier */
   const sous=Math.max(R(80*K), MENU_H-BW);
-  const hb=Math.max(R(26*K),Math.min(R(42*K),Math.floor(sous/6)));
+  const hb=Math.max(R(26*K),Math.min(R(32*K),Math.floor(sous/9)));
   const ec=Math.max(R(8*K),Math.min(R(22*K),Math.floor(sous/12)));
   const ni=lignesInfo().length, hPuces=R(8*K), hInfo=ni*GH+(ni-1)*R(4*K);
   const bloc=hb+ec+h2+ec+hPuces+ec+hInfo;
@@ -1573,7 +1578,7 @@ function drawMenu(g){
   } else {
     /* une fenetre se centre sur la page entiere : le fond doit l'etre aussi,
        sinon le plateau n'en habille que le haut */
-    g.fillStyle=P.bg; g.fillRect(-BX,0,BUF,hMenu());
+    g.fillStyle=P.bg; g.fillRect(-BX,-GAP_B,BUF,hMenu()+GAP_B);
     if(page==='mode') menuMode(g); else menuRegles(g);
   }
 }
@@ -1624,7 +1629,7 @@ function menuTitre(g){
 }
 function menuMode(g){
   const u=modeUI();
-  voile(g,-BX,0,BUF,hMenu());                                   /* arriere-plan voile */
+  voile(g,-BX,-GAP_B,BUF,hMenu()+GAP_B);                        /* arriere-plan voile */
   g.fillStyle='rgba(10,8,6,.45)'; g.fillRect(u.wx+R(3*K),u.wy+R(4*K),u.ww,u.wh);
   g.fillStyle=P.panel;            g.fillRect(u.wx,u.wy,u.ww,u.wh);
   hair(g,u.wx,u.wy,u.ww,u.wh,P.panel2);
@@ -1664,7 +1669,7 @@ function reglesUI(){
 }
 function menuRegles(g){
   const u=reglesUI(), r=RULES[rulePage];
-  voile(g,-BX,0,BUF,hMenu());
+  voile(g,-BX,-GAP_B,BUF,hMenu()+GAP_B);
   g.fillStyle='rgba(10,8,6,.45)'; g.fillRect(u.wx+R(3*K),u.wy+R(4*K),u.ww,u.wh);
   g.fillStyle=P.panel;            g.fillRect(u.wx,u.wy,u.ww,u.wh);
   hair(g,u.wx,u.wy,u.ww,u.wh,P.panel2);
