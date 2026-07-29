@@ -11,8 +11,8 @@ eux-mêmes leur masque arrondi.
 La source fait 1254 px de côté, soit plus que les 1024 px de la plus grande
 taille réclamée par les systèmes. **Aucun agrandissement n'était donc
 nécessaire**, et il aurait été contre-productif : l'image a été
-rééchantillonnée avant de m'arriver — 70 353 couleurs distinctes et
-seulement 17 ruptures franches sur toute la largeur, là où un vrai pixel art
+rééchantillonnée avant de m'arriver — 66 154 couleurs distinctes et
+seulement 13 ruptures franches sur toute la largeur, là où un vrai pixel art
 compte quelques dizaines de couleurs et une rupture à chaque bord de bloc.
 Autrement dit ses blocs sont légèrement flous, et l'agrandir n'aurait fait
 qu'étaler ce flou sans ajouter le moindre détail.
@@ -37,10 +37,18 @@ arrondi : c'est le vrai test de lisibilité.
 
 ## Câblage
 
-La page déployée sur Vercel porte un `manifest.webmanifest` (nom, affichage
-autonome, orientation portrait, couleurs de fond et de thème) et les quatre
-`apple-touch-icon` d'iOS. Les fichiers sont servis par jsDelivr, épinglés
-sur un commit — le même mécanisme que le jeu lui-même.
+Ce visuel sert **à la fois** d'icône d'application et de logo du site :
+
+- **écran d'accueil du téléphone** : `manifest.webmanifest` (nom, affichage
+  autonome, orientation portrait, couleurs de fond et de thème) plus les
+  quatre `apple-touch-icon` d'iOS ;
+- **onglet du navigateur** : les favicons 32 et 192 px, qui remplacent le
+  petit plateau SVG dessiné en ligne jusqu'ici ;
+- **aperçu des liens partagés** : `og:image` et `twitter:image` en 512 px,
+  avec une carte de type `summary` — carrée, comme le visuel.
+
+Les fichiers sont servis par jsDelivr, épinglés sur un commit — le même
+mécanisme que le jeu lui-même.
 
 Le `index.html` à la racine du dépôt reste autonome et garde son favicon SVG
 en ligne : il doit fonctionner hors ligne, sans dépendre d'un réseau.
