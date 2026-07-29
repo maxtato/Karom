@@ -2,17 +2,18 @@
 
 Le visuel vient de toi (`source-1254.png`, 1254×1254) : le palet vert et le
 jeton clair à l'instant du choc, gerbe dorée entre les deux, lignes de
-vitesse derrière le palet, le tout sur le plateau de bois. Le cadre est
-carré et à fond perdu — c'est ce qu'il faut, les systèmes appliquant
-eux-mêmes leur masque arrondi.
+vitesse derrière le palet, le tout sur un plateau de bois vu en entier —
+cadre sombre, coins renforcés, tapis clair veiné. Le format est carré et à
+fond perdu, c'est ce qu'il faut : les systèmes appliquent eux-mêmes leur
+masque arrondi, qui vient rogner les quatre coins noirs.
 
 ## Sur la définition
 
 La source fait 1254 px de côté, soit plus que les 1024 px de la plus grande
 taille réclamée par les systèmes. **Aucun agrandissement n'était donc
 nécessaire**, et il aurait été contre-productif : l'image a été
-rééchantillonnée avant de m'arriver — 66 154 couleurs distinctes et
-seulement 13 ruptures franches sur toute la largeur, là où un vrai pixel art
+rééchantillonnée avant de m'arriver — 69 335 couleurs distinctes et
+seulement 26 ruptures franches sur toute la largeur, là où un vrai pixel art
 compte quelques dizaines de couleurs et une rupture à chaque bord de bloc.
 Autrement dit ses blocs sont légèrement flous, et l'agrandir n'aurait fait
 qu'étaler ce flou sans ajouter le moindre détail.
