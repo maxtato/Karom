@@ -68,10 +68,13 @@ const MARG=Math.round(11*K);         /* marge laterale de part et d'autre du pla
 const BW=BUF-2*MARG, BX=MARG;        /* cote et abscisse du plateau */
 const S=BW/W;
 const R=Math.round;
+/* le bandeau du titre coiffe tout le reste et ne bouge jamais */
+const TITRE_H=Math.round(17*K);
 const HUD_H=Math.round(40*K), MSG_H=0, BTN_H=Math.round(30*K);
 const CTRL_MIN=Math.round(104*K), CTRL_MAX=Math.round(340*K);
 const GAP_MAX=Math.round(24*K);  /* respiration maximale sous l'en-tete */
 let CTRL_H=150, TOTH=0, BOARD_Y=HUD_H, MSG_Y=0, CTRL_Y=0, BTN_Y=0;
+const HUD_Y=TITRE_H;                 /* l'en-tete des scores commence sous le titre */
 let GAP_B=0;                  /* de combien le plateau descend sous l'en-tete */
 let PAD_H=Math.round(96*K);   /* hauteur du pave, reglette comprise */
 let PAD_Y=0;                  /* haut du pave */
@@ -96,13 +99,13 @@ function vpH(){
 }
 function metrics(){
   const vw=vpW(), vh=vpH();
-  const want=Math.round(BUF*vh/vw)-HUD_H-BW-MSG_H-BTN_H;
+  const want=Math.round(BUF*vh/vw)-TITRE_H-HUD_H-BW-MSG_H-BTN_H;
   const reste=Math.max(CTRL_MIN,Math.min(CTRL_MAX+GAP_MAX,want));
   /* le plateau se decolle de l'en-tete des qu'il y a de quoi */
   GAP_B=Math.max(0,Math.min(GAP_MAX,reste-CTRL_MIN));
   CTRL_H=reste-GAP_B;
-  TOTH=HUD_H+GAP_B+BW+MSG_H+CTRL_H+BTN_H;
-  BOARD_Y=HUD_H+GAP_B; MSG_Y=BOARD_Y+BW; CTRL_Y=MSG_Y+MSG_H; BTN_Y=CTRL_Y+CTRL_H;
+  TOTH=TITRE_H+HUD_H+GAP_B+BW+MSG_H+CTRL_H+BTN_H;
+  BOARD_Y=TITRE_H+HUD_H+GAP_B; MSG_Y=BOARD_Y+BW; CTRL_Y=MSG_Y+MSG_H; BTN_Y=CTRL_Y+CTRL_H;
   /* un seul pave : la reglette de placement en bandeau haut, le jeton dessous.
      Les deux gestes du tir tiennent ainsi sous le meme pouce. */
   const marge=R(8*K);
@@ -1412,6 +1415,7 @@ function draw(){
   g.fillStyle=P.bg; g.fillRect(0,0,BUF,TOTH);
   tctx.clearRect(0,0,CSSW,CSSH);
 
+  drawTitre(g);
   drawHud(g);
   /* une page de menu descend sous le plateau : on lui prepare tout le bas */
   if(phase==='menu'){ g.fillStyle=P.bg; g.fillRect(0,CTRL_Y,BUF,TOTH-CTRL_Y); }
@@ -1500,12 +1504,13 @@ function draw(){
 
   if(phase!=='menu'){ drawCtrl(g); drawButtons(g); }
   if(pause){                       /* la fenetre flotte, tout le reste s'efface */
-    voile(g,0,0,BUF,HUD_H);                /* l'en-tete : les scores s'eteignent aussi */
+    voile(g,0,HUD_Y,BUF,HUD_H);            /* l'en-tete : les scores s'eteignent aussi */
     voile(g,0,CTRL_Y,BUF,TOTH-CTRL_Y);     /* la zone de controle et la barre du bas */
   } else if(phase==='menu'&&page!=='titre'){
     /* meme regle hors partie : quand une fenetre s'ouvre, la bande du haut
-       s'efface derriere elle, pastille de la reine comprise */
-    voile(g,0,0,BUF,HUD_H);
+       s'efface derriere elle, pastille de la reine comprise. Le titre, lui,
+       reste allume : il n'appartient a aucun ecran. */
+    voile(g,0,HUD_Y,BUF,HUD_H);
   }
   if(aimPow!==null) powerBar(g,aimPow);
   if(phase==='over') drawBanner(g);
@@ -1529,6 +1534,14 @@ function drawNote(g){
   plate(g,x,y,w,h,P.panel);
   jtext(n.txt,BUF/2,jmid(y,h,taille,fam),col,taille,fam,'c');
   g.globalAlpha=1; tctx.globalAlpha=1;
+}
+
+/* Le nom du jeu, tout en haut, en toutes circonstances : partie, menu, fenetre
+   de reglages, ecran de fin. Il ne clignote pas d'un ecran a l'autre et aucun
+   voile ne le touche — c'est le seul element qui n'appartient a aucune page. */
+function drawTitre(g){
+  g.fillStyle=P.bg; g.fillRect(0,0,BUF,TITRE_H);
+  jtext('KAROM',BUF/2,jmid(0,TITRE_H,R(11*K),'j25'),P.accent,R(11*K),'j25','c');
 }
 
 /* Trois cases d'en-tete, dont le contenu depend du mode */
@@ -1558,18 +1571,13 @@ function mmss(ms){
 function drawHud(g){
   /* mx : marge laterale, y : hauteur du haut des plaques, h : leur epaisseur.
      iy replace le contenu au milieu de la plaque quand celle-ci s'epaissit. */
-  const mx=R(2*K), y=R(5*K), h=HUD_H-R(8*K), pad=R(6*K);
+  const mx=R(2*K), y=HUD_Y+R(5*K), h=HUD_H-R(8*K), pad=R(6*K);
   const iy=y+Math.floor((h-R(28*K))/2);
   if(phase==='menu'){
+    /* le nom du jeu vit dans le bandeau du dessus, en permanence : ici on ne
+       garde que la reine en pastille, centree */
     plate(g,mx,y,BUF-2*mx,h,P.panel);
-    /* l'accueil porte deja le nom en grand sur le plateau : la bande se tait,
-       et ne garde que la reine en pastille. Sur les autres pages, ou la
-       fenetre a son propre titre, le nom du jeu reste utile ici. */
-    const seul = page==='titre';
-    const dx = seul ? 0 : R(14*K);
-    if(!seul) jtext('KAROM',BUF/2-dx,iy+R(6*K),P.accent,R(11*K),'j15','c');
-    const qx = seul ? BUF/2 : BUF-R(26*K);
-    pcircle(g,qx,y+h/2,R(6*K),P.edge); pcircle(g,qx,y+h/2,R(6*K)-1,P.qPiece);
+    pcircle(g,BUF/2,y+h/2,R(6*K),P.edge); pcircle(g,BUF/2,y+h/2,R(6*K)-1,P.qPiece);
     return;
   }
   const H2=hudCases(), half=R(108*K);
@@ -1581,15 +1589,23 @@ function drawHud(g){
      doit rester commun aux deux cotes. */
   let capNom=R(10*K);
   if(!H2.g.who){
-    const xNom0=pad+2*R(5*K)+R(5*K);
+    const xNom0=pad+2*R(4*K)+R(5*K);
     const dispo=Math.min(...cases.map(s2=>{
       const sp=s2.c.cote?scorePop[s2.c.cote]:0;
-      return half-pad-jw(String(s2.c.val),sp>12?R(20*K):R(17*K),'j15')-R(9*K)-xNom0;
+      return half-pad-jw(String(s2.c.val),sp>12?R(20*K):R(17*K),'j15')-R(5*K)-xNom0;
     }));
-    const tailles=[R(10*K),R(9*K),R(8*K),R(7*K)];
+    /* On garde celle qui rend le plus grand, pas celle qu'on demande le plus
+       grand : la police se cale sur la grille de l'ecran, si bien qu'un corps
+       demande plus haut peut s'afficher plus bas. Prendre le premier candidat
+       qui passe donnerait un resultat au petit bonheur. */
+    const tailles=[R(14*K),R(13*K),R(12*K),R(11*K),R(10*K),R(9*K),R(8*K)];
     capNom=tailles[tailles.length-1];
+    let mieux=-1;
     for(const t of tailles){
-      if(cases.every(s2=>jw(s2.c.lab,t,'j25')<=dispo)){ capNom=t; break; }
+      if(cases.every(s2=>jw(s2.c.lab,t,'j25')<=dispo)){
+        const rendu=jcaps(t,'j25');
+        if(rendu>mieux){ mieux=rendu; capNom=t; }
+      }
     }
   }
   for(const s2 of cases){
@@ -1599,7 +1615,7 @@ function drawHud(g){
     if(!s2.c.who){
       /* Une seule ligne — le jeton, le nom du joueur, son compte. Rien a caser
          dessous, donc tout monte d'un cran et remplit la case. */
-      const cy2=y+Math.floor(h/2), rj=R(5*K);
+      const cy2=y+Math.floor(h/2), rj=R(4*K);
       const dcx2=s2.x+pad+rj;
       pcircle(g,dcx2,cy2,rj,on?P.edge:P.panel2);
       pcircle(g,dcx2,cy2,rj-1,s2.c.col);
@@ -1797,7 +1813,6 @@ function drawMenu(g){
 }
 function menuTitre(g){
   const u=carrousel(), m=modeCourant(), i=indexMode();
-  jtext('KAROM',BW/2,u.titre.y,P.accent,R(12*K),'j25','c');
 
   g.fillStyle='rgba(10,8,6,.45)'; g.fillRect(u.p.x+R(3*K),u.p.y+R(4*K),u.p.w,u.p.h);
   g.fillStyle=P.panel; g.fillRect(u.p.x,u.p.y,u.p.w,u.p.h);
