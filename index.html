@@ -1532,8 +1532,9 @@ function hudCases(){
     /* tout le monde joue tous les jetons : pas de camp, donc pas de pastille de couleur */
     return {g:{lab:'JOUEUR 1',who:'POINTS', val:score.W, col:cfg.teinte, cote:'W'},
             d:{lab:adv,       who:'POINTS', val:score.B, col:cfg.teinte, cote:'B'}, mil:'cible'};
-  return {g:{lab:'CLAIRS', who:'JOUEUR 1', val:remaining('W'), col:P.wPiece, cote:'W'},
-          d:{lab:'FONCÉS', who:adv,        val:remaining('B'), col:P.bPiece, cote:'B'}, mil:'reine'};
+  /* le jeton dit deja la couleur du camp : la case n'affiche que le joueur */
+  return {g:{lab:'JOUEUR 1', who:null, val:remaining('W'), col:P.wPiece, cote:'W'},
+          d:{lab:adv,        who:null, val:remaining('B'), col:P.bPiece, cote:'B'}, mil:'reine'};
 }
 function mmss(ms){
   const t=Math.max(0,Math.ceil(ms/1000));
@@ -1562,6 +1563,24 @@ function drawHud(g){
     const on = s2.c.cote ? (turn===s2.c.cote&&phase!=='over') : false;
     plate(g,s2.x,y,half,h,on?couleurCote(s2.c.cote):P.panel);
     const fg=on?P.edge:P.pale, sub2=on?'rgba(10,8,6,.60)':P.mute;
+    if(!s2.c.who){
+      /* Une seule ligne — le jeton, le nom du joueur, son compte. Rien a caser
+         dessous, donc tout monte d'un cran et remplit la case. */
+      const cy2=y+Math.floor(h/2), rj=R(5*K), sc=2;
+      const dcx2=s2.x+pad+rj;
+      pcircle(g,dcx2,cy2,rj,on?P.edge:P.panel2);
+      pcircle(g,dcx2,cy2,rj-1,s2.c.col);
+      btext(g,s2.c.lab,dcx2+rj+R(5*K),cy2-Math.round(GH*sc/2),fg,sc);
+      const nb2=String(s2.c.val), sp3=s2.c.cote?scorePop[s2.c.cote]:0;
+      const cap2=sp3>12?R(20*K):R(17*K), dy3=sp3>0?-R(2*K):0;
+      const col2=sp3>0?(on?P.edge:couleurCote(s2.c.cote)):fg;
+      jtext(nb2,s2.x+half-pad,jmid(y,h,cap2,'j15')+dy3,col2,cap2,'j15','r');
+      if(sp3>0){
+        const rr2=R(10*K)+Math.round((20-sp3)*0.8*K);
+        pring(g,s2.x+half-pad-R(6*K),cy2,rr2,on?'rgba(10,8,6,.35)':'rgba(237,228,210,.30)');
+      }
+      continue;
+    }
     const dcx=s2.x+pad+R(4*K), dcy=iy+R(8*K);
     pcircle(g,dcx,dcy,R(4*K),on?P.edge:P.panel2);
     pcircle(g,dcx,dcy,R(4*K)-1,s2.c.col);
