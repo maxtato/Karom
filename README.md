@@ -38,11 +38,11 @@ une nouvelle version :
 2. commit + push, relever le SHA ;
 3. mettre à jour la constante `SHA` de la page déployée sur Vercel.
 
-La page déployée doit reprendre le même remplissage `env(safe-area-inset-*)`
-que le fichier canonique : en mode autonome sur iPhone, le contenu passe
-sinon sous la barre d'état et l'en-tête des scores se retrouve caché par
-l'heure et la batterie. Le jeu lit ce remplissage pour se dimensionner, donc
-les deux doivent rester d'accord.
+La page déployée doit reprendre le même remplissage haut
+(`env(safe-area-inset-top)`) que le fichier canonique : en mode autonome sur
+iPhone, le contenu passe sinon sous la barre d'état et l'en-tête des scores
+se retrouve caché par l'heure et la batterie. Le jeu lit ce remplissage pour
+se dimensionner, donc les deux doivent rester d'accord.
 
 Le `index.html` à la racine reste la version canonique : un seul fichier
 autonome, jouable hors ligne en l'ouvrant dans un navigateur.

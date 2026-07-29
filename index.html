@@ -19,19 +19,12 @@
     position:fixed;top:0;left:0;right:0;bottom:0;
     width:100%;height:100vh;height:100dvh;
     overscroll-behavior:none;-webkit-user-select:none;user-select:none;
-    background:#14110E;
-    background-image:
-      linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
-    background-size:4px 4px;
+    background:#14110E;   /* uni : la marge du haut se confond avec le fond du jeu */
     display:flex;align-items:center;justify-content:center;
     overflow:hidden;touch-action:none;
-    /* on se tient a l'ecart de la barre d'etat et de la barre d'accueil :
-       en mode autonome sur iPhone, le contenu passe sinon dessous. */
-    padding:calc(env(safe-area-inset-top,0px) + 4px)
-            env(safe-area-inset-right,0px)
-            env(safe-area-inset-bottom,0px)
-            env(safe-area-inset-left,0px);
+    /* on se tient a l'ecart de la barre d'etat : en mode autonome sur iPhone,
+       le contenu passe sinon sous l'heure et le niveau de batterie. */
+    padding:calc(env(safe-area-inset-top,0px) + 4px) 0 0 0;
   }
   #wrap{position:relative;line-height:0}
   #cv{display:block;touch-action:none;image-rendering:pixelated;image-rendering:crisp-edges}
@@ -233,12 +226,10 @@ let aimPow=null;
 const THEMES=[
   {n:'SOMBRE', c:{bg:'#14110E',panel:'#1E1A16',panel2:'#2A241E',edge:'#0A0806',
                   pale:'#EDE4D2',mute:'#7A6E5F',accent:'#3D9E72',
-                  g1:'#123024',g2:'#1E6349',g3:'#3D9E72',g4:'#6FD3A6'},
-   grille:'rgba(255,255,255,.022)'},
+                  g1:'#123024',g2:'#1E6349',g3:'#3D9E72',g4:'#6FD3A6'}},
   {n:'CLAIR',  c:{bg:'#E4D2A8',panel:'#F1E4C6',panel2:'#C0A776',edge:'#3A2C18',
                   pale:'#2E2415',mute:'#7C6845',accent:'#2E7C58',
-                  g1:'#1B4C36',g2:'#2E7C58',g3:'#43A87A',g4:'#78D9AE'},
-   grille:'rgba(0,0,0,.030)'}
+                  g1:'#1B4C36',g2:'#2E7C58',g3:'#43A87A',g4:'#78D9AE'}}
 ];
 let theme=0;
 function applyTheme(){
@@ -246,12 +237,9 @@ function applyTheme(){
   for(const k in t.c) P[k]=t.c[k];
   bg=null;                                   /* le plateau depend de P.bg dans ses coins */
   const b=document.body;
-  if(b&&b.style){
-    b.style.background=t.c.bg;
-    b.style.backgroundImage='linear-gradient('+t.grille+' 1px,transparent 1px),'+
-                            'linear-gradient(90deg,'+t.grille+' 1px,transparent 1px)';
-    b.style.backgroundSize='4px 4px';
-  }
+  /* fond uni, sans quadrillage : la marge du haut doit se confondre avec le
+     fond du jeu et non former un bandeau a part */
+  if(b&&b.style) b.style.background=t.c.bg;
 }
 let page='titre', rulePage=0, joyDrag=null, trkDrag=false;
 let press={id:null,t:0}, pulse=0, placeTouche=false;
@@ -841,17 +829,55 @@ function bruitSec(dur,vol){
   const g=a.createGain(); g.gain.value=vol;
   s.connect(g); g.connect(a.destination); s.start();
 }
+/* Choc de deux pieces de bois. Un simple bruit blanc claque comme du
+   plastique ; ce qu'on reconnait au bois, c'est le claquement tres bref suivi
+   d'un corps resonant de quelques modes inharmoniques qui s'eteignent
+   aussitot. D'ou les deux couches empilees ici.
+   vol : niveau general, aigu : multiplicateur de hauteur (le cadre sonne plus
+   grave que les jetons), duree : extinction du corps. */
+function bois(vol,aigu,duree){
+  const a=sndCtx(); if(!a) return;
+  const t0=a.currentTime;
+  const sortie=a.createGain();
+  sortie.gain.value=vol;
+  sortie.connect(a.destination);
+
+  /* le claquement : douze millisecondes de bruit passe en bande, le bois n'a
+     ni le sifflement des aigus purs ni le grondement des graves */
+  const n=Math.max(1,Math.floor(a.sampleRate*0.012));
+  const buf=a.createBuffer(1,n,a.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++){ const k=1-i/n; d[i]=(Math.random()*2-1)*k*k; }
+  const s=a.createBufferSource(); s.buffer=buf;
+  const bp=a.createBiquadFilter();
+  bp.type='bandpass'; bp.frequency.setValueAtTime(1500*aigu,t0); bp.Q.value=1.1;
+  s.connect(bp); bp.connect(sortie); s.start(t0);
+
+  /* le corps : trois modes aux rapports non entiers, amortis d'autant plus
+     vite qu'ils sont hauts - c'est ce qui fait entendre du bois plein */
+  const modes=[[1,0.55,1],[2.31,0.28,0.62],[3.79,0.15,0.4]];
+  for(const [rap,amp,tenue] of modes){
+    const o=a.createOscillator(), g=a.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(420*aigu*rap,t0);
+    g.gain.setValueAtTime(amp,t0);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+duree*tenue);
+    o.connect(g); g.connect(sortie);
+    o.start(t0); o.stop(t0+duree+0.02);
+  }
+}
 function sndChoc(v){
   if(chocCd>0) return;
   const f=Math.min(1,v/14);
   if(f<0.06) return;
   chocCd=3;
-  bruitSec(0.03+f*0.03, 0.05+f*0.16);
+  /* plus le choc est franc, plus il claque haut et resonne longtemps */
+  bois(0.10+f*0.26, 0.9+f*0.45, 0.05+f*0.06);
 }
 function sndBande(v){
   if(bandeCd>0||v<2.2) return;
   bandeCd=4;
-  bruitSec(0.025, 0.04+Math.min(0.06,v*0.01));
+  const f=Math.min(1,v/14);
+  /* le cadre est une piece bien plus grosse : plus grave, un rien plus long */
+  bois(0.09+f*0.14, 0.5, 0.08+f*0.05);
 }
 function sndPoche(rate){
   if(rate){ bip(220,0.16,0.10,110); bip(110,0.22,0.10,55); }
