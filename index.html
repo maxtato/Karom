@@ -1624,14 +1624,15 @@ function drawHud(g){
          d'abord : le nom se contente de ce qui reste, quitte a descendre d'un
          cran, plutot que d'aller toucher le chiffre */
       jtext(s2.c.lab,dcx2+rj+R(5*K),jmid(y,h,capNom,'j25'),fg,capNom,'j25');
-      /* Le compte dans sa pastille creusee : colle au nom il se lisait comme
-         sa suite. Le disque sombre le detache de la plaque, et le chiffre y
-         reprend la couleur du camp — le seul endroit ou elle ressort quand la
-         plaque est deja peinte. */
+      /* Le compte dans sa pastille : colle au nom il se lisait comme sa suite.
+         La pastille est l'inverse exact de sa plaque — elle prend la couleur de
+         l'encre, le chiffre celle du fond. Elle se detache donc aussi bien sur
+         la plaque peinte du joueur actif que sur la plaque sombre de l'autre. */
       const rSc=R(9*K), cxSc=s2.x+half-R(4*K)-rSc;
+      const encre = on ? P.edge : couleurCote(s2.c.cote);
+      const col2  = on ? couleurCote(s2.c.cote) : P.panel;
       pcircle(g,cxSc,cy2,rSc,P.edge);
-      pcircle(g,cxSc,cy2,rSc-1,P.bg);
-      const col2=couleurCote(s2.c.cote);
+      pcircle(g,cxSc,cy2,rSc-1,encre);
       jtext(nb2,cxSc,jmid(y,h,cap2,'j15')+dy3,col2,cap2,'j15','c');
       if(sp3>0){
         const rr2=rSc+Math.round((20-sp3)*0.6*K);
