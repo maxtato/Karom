@@ -680,12 +680,15 @@ function endStroke(){
 
   /* --- dire pourquoi --- */
   if(!cfg.soloStrict){
+    /* chaque mot porte le nom de celui qu'il concerne, en plus de sa couleur :
+       le nom se lit meme quand on ne regarde pas le bandeau des scores */
+    const qui=nomCote(turn);
     let raison='';
-    if(faute)                                          raison='PALET EMPOCHÉ';
-    else if(autres>0)                                  raison='JETON ADVERSE';
-    else if(cfg.reine&&queenState.pendingBy===turn)    raison='REINE À COUVRIR';
-    else if(cfg.reine&&reine&&queenState.owner===turn) raison='REINE GAGNÉE';
-    else if(garde)                                     raison='REJOUE';
+    if(faute)                                          raison=qui+' : PALET EMPOCHÉ';
+    else if(autres>0)                                  raison=qui+' : JETON ADVERSE';
+    else if(cfg.reine&&queenState.pendingBy===turn)    raison=qui+' COUVRE LA REINE';
+    else if(cfg.reine&&reine&&queenState.owner===turn) raison=qui+' GAGNE LA REINE';
+    else if(garde)                                     raison=qui+' REJOUE';
     if(raison) note(raison, turn);
   }
 
@@ -1498,8 +1501,11 @@ function draw(){
 function drawNote(g){
   const n=notes[0];
   if(!n||phase==='menu') return;
-  const taille=R(11*K), fam='j15';
-  const w=Math.ceil(jw(n.txt,taille,fam))+R(18*K), h=R(19*K);
+  const fam='j15';
+  /* les noms allongent les mots : on descend d'un cran plutot que de deborder */
+  let taille=R(11*K), w=Math.ceil(jw(n.txt,taille,fam))+R(18*K);
+  if(w>BUF-R(6*K)){ taille=R(9*K); w=Math.ceil(jw(n.txt,taille,fam))+R(14*K); }
+  const h=R(19*K);
   const x=Math.round((BUF-w)/2), y=BOARD_Y+R(14*K);
   const f=Math.min(1,n.t/14);                    /* fondu sur la fin */
   const col = couleurCote(n.cote);
