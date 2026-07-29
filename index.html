@@ -224,6 +224,7 @@ let shakeT=0, bannerT=0, bannerTxt='';
    elle revient. Ils ne bloquent rien et defilent l'un apres l'autre — sans
    eux la regle parait arbitraire, surtout quand l'ordinateur enchaine. */
 let notes=[];
+const ANNONCE=82;   /* l'annonce du joueur tient plus longtemps que la raison */
 function note(t,ton,duree){ notes.push({txt:t, ton:ton||'bon', t:duree||46}); }
 function nomCote(c){ return c==='W' ? 'JOUEUR 1' : (mode==='solo' ? 'CPU' : 'JOUEUR 2'); }
 let aiPlan=null, aiWait=0, blink=0;
@@ -530,7 +531,7 @@ function newGame(){
   tempsMs=cfg.temps?cfg.temps*1000:0;
   bannerT=0;
   notes=[];
-  if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),'neutre');
+  if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),'neutre',ANNONCE);
 }
 function mk(x,y,type){ return {x,y,vx:0,vy:0,r:PR,m:1,type,alive:true}; }
 
@@ -685,7 +686,7 @@ function endStroke(){
   if(turn!==before){
     bannerT=24;
     /* la main change : on annonce qui prend la suite */
-    if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),'neutre');
+    if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),'neutre',ANNONCE);
     if(mode==='duo') rotGoal = (turn==='B') ? Math.PI : 0;
   }
 }
