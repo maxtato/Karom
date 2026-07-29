@@ -1846,7 +1846,9 @@ function menuTitre(g){
   g.fillStyle=hs?P.accent:P.sBody; g.fillRect(b.x+1,b.y+ds+1,b.w-2,b.h-2);
   const ci=b.x+R(14*K), cj=b.y+ds+Math.floor(b.h/2);
   pring(g,ci,cj,R(8*K),P.sRed); pcircle(g,ci,cj,R(2*K),P.sRed);
-  jtext('START',b.x+b.w/2,jmid(b.y+ds,b.h,R(8*K),'j15'),hs?P.edge:P.sRed,R(8*K),'j15','c');
+  /* R(11*K) tombe sur le meme cran de la grille aux trois densites : le mot
+     garde la meme taille d'un telephone a l'autre */
+  jtext('START',b.x+b.w/2,jmid(b.y+ds,b.h,R(11*K),'j15'),hs?P.edge:P.sRed,R(11*K),'j15','c');
 
   for(const [z,lab,id] of [[u.regl,'REGLAGES','set'],[u.regles,'REGLES','rules']]){
     const hit=press.id===id&&press.t>0, dy=hit?R(2*K):0;
