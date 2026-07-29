@@ -445,7 +445,11 @@ function lignesInfo(){
   return L;
 }
 function carrousel(){
-  const px=R(26*K), pw=BW-2*px, ph=R(122*K);
+  /* la carte s'allonge si le resume des regles tient sur plus d'une ligne :
+     sa hauteur suit son contenu au lieu d'etre figee */
+  const nRes=Math.max(1,resumeRegles().length);
+  const px=R(26*K), pw=BW-2*px;
+  const ph=R(104*K)+(nRes-1)*R(9*K)+GH+R(10*K);
   const h2=R(19*K), w2=Math.floor((pw-R(6*K))/2);
   const yTitre=R(8*K), hTitre=R(30*K);
   /* la carte du mode se pose vers le bas du plateau, sous le titre */
@@ -490,7 +494,18 @@ function resumeRegles(){
   if(cfg.combo) b.push('COMBO X'+cfg.combo[cfg.combo.length-1]);
   if(cfg.reine) b.push(cfg.couvrir==='non'?'REINE LIBRE':'REINE A COUVRIR');
   if(cfg.etoiles) b.push('3 ETOILES A '+cfg.etoiles[0]);
-  if(b.length) L.push(b.join('   '));
+  /* tout sur une ligne debordait de la carte des qu'un mode avait beaucoup a
+     dire : on remplit ligne apres ligne, dans la largeur disponible */
+  if(b.length){
+    const larg=(BW-2*R(26*K))-R(24*K);
+    let cur='';
+    for(const f of b){
+      const essai = cur ? cur+'   '+f : f;
+      if(cur && sw(essai)>larg){ L.push(cur); cur=f; }
+      else cur=essai;
+    }
+    if(cur) L.push(cur);
+  }
   return L;
 }
 function modeUI(){
@@ -1559,6 +1574,24 @@ function drawHud(g){
   }
   const H2=hudCases(), half=R(108*K);
   const cases=[{c:H2.g,x:mx,t:'W'},{c:H2.d,x:BUF-half-mx,t:'B'}];
+  /* Une seule taille de nom pour les deux cases. Mesuree une fois sur le nom
+     le plus large : sinon JOUEUR 2, d'un cheveu plus long que JOUEUR 1,
+     descendait d'un cran tout seul et l'en-tete perdait sa symetrie. La
+     quantification de la police varie avec la densite d'ecran, donc le calcul
+     doit rester commun aux deux cotes. */
+  let capNom=R(10*K);
+  if(!H2.g.who){
+    const xNom0=pad+2*R(5*K)+R(5*K);
+    const dispo=Math.min(...cases.map(s2=>{
+      const sp=s2.c.cote?scorePop[s2.c.cote]:0;
+      return half-pad-jw(String(s2.c.val),sp>12?R(20*K):R(17*K),'j15')-R(9*K)-xNom0;
+    }));
+    const tailles=[R(10*K),R(9*K),R(8*K),R(7*K)];
+    capNom=tailles[tailles.length-1];
+    for(const t of tailles){
+      if(cases.every(s2=>jw(s2.c.lab,t,'j25')<=dispo)){ capNom=t; break; }
+    }
+  }
   for(const s2 of cases){
     const on = s2.c.cote ? (turn===s2.c.cote&&phase!=='over') : false;
     plate(g,s2.x,y,half,h,on?couleurCote(s2.c.cote):P.panel);
@@ -1566,14 +1599,17 @@ function drawHud(g){
     if(!s2.c.who){
       /* Une seule ligne — le jeton, le nom du joueur, son compte. Rien a caser
          dessous, donc tout monte d'un cran et remplit la case. */
-      const cy2=y+Math.floor(h/2), rj=R(5*K), sc=2;
+      const cy2=y+Math.floor(h/2), rj=R(5*K);
       const dcx2=s2.x+pad+rj;
       pcircle(g,dcx2,cy2,rj,on?P.edge:P.panel2);
       pcircle(g,dcx2,cy2,rj-1,s2.c.col);
-      btext(g,s2.c.lab,dcx2+rj+R(5*K),cy2-Math.round(GH*sc/2),fg,sc);
       const nb2=String(s2.c.val), sp3=s2.c.cote?scorePop[s2.c.cote]:0;
       const cap2=sp3>12?R(20*K):R(17*K), dy3=sp3>0?-R(2*K):0;
       const col2=sp3>0?(on?P.edge:couleurCote(s2.c.cote)):fg;
+      /* le nom dans la police des titres, et l'air avant le compte est reserve
+         d'abord : le nom se contente de ce qui reste, quitte a descendre d'un
+         cran, plutot que d'aller toucher le chiffre */
+      jtext(s2.c.lab,dcx2+rj+R(5*K),jmid(y,h,capNom,'j25'),fg,capNom,'j25');
       jtext(nb2,s2.x+half-pad,jmid(y,h,cap2,'j15')+dy3,col2,cap2,'j15','r');
       if(sp3>0){
         const rr2=R(10*K)+Math.round((20-sp3)*0.8*K);
