@@ -350,7 +350,8 @@ function discPix(d){
   else if(d.type==='W'){ body=P.wPiece; edge=P.wEdge; }
   else if(d.type==='Q'){ body=P.qPiece; edge=P.qEdge; }
   else { body=P.bPiece; edge=P.bEdge; }
-  const o=ptEcran(BX+d.x*S+K, BOARD_Y+d.y*S+2*K);
+  const om=versLumiere(K,2*K);
+  const o=ptEcran(BX+d.x*S+om.x, BOARD_Y+d.y*S+om.y);
   cellules(o.x,o.y,r+1,'rgba(24,14,4,.10)');
   cellules(o.x,o.y,r,'rgba(24,14,4,.22)');
   cellules(p.x,p.y,r,edge);
@@ -1426,7 +1427,7 @@ function draw(){
       if(aim) dir=aim;
       else if(aiPlan&&phase==='aim'){ const L=Math.hypot(aiPlan.vx,aiPlan.vy)||1; dir={ux:aiPlan.vx/L,uy:aiPlan.vy/L}; }
       if(dir){
-        traitPix(striker.x,striker.y,dir.ux,dir.uy,SR,couleurCote(turn),7);
+        traitPix(striker.x,striker.y,dir.ux,dir.uy,SR,P.aim,7);
         if(level===0){
           const h2=contact(striker.x,striker.y,dir.ux,dir.uy,SR,null);
           if(h2.d){
@@ -2015,6 +2016,15 @@ function drawBanner(g){
   }
 }
 
+/* Entre deux tours c'est le plateau qui pivote, pas la lampe. Un jeton etant
+   rond, sa rotation ne se voit pas — sauf a son ombre et a son eclat, qui
+   partiraient du mauvais cote. On contre-tourne donc leur decalage : a
+   l'ecran ils gardent leur place, quelle que soit l'orientation du plateau. */
+function versLumiere(dx,dy){
+  if(!rotT) return {x:dx,y:dy};
+  const c=Math.cos(-rotT), s=Math.sin(-rotT);
+  return {x:dx*c-dy*s, y:dx*s+dy*c};
+}
 function disc(g,d){
   const cx=d.x*S, cy=d.y*S, r=Math.max(2,Math.round(d.r*S));
   let body,edge;
@@ -2022,15 +2032,17 @@ function disc(g,d){
   else if(d.type==='W'){ body=P.wPiece; edge=P.wEdge; }
   else if(d.type==='Q'){ body=P.qPiece; edge=P.qEdge; }
   else { body=P.bPiece; edge=P.bEdge; }
-  pcircle(g,cx+K,cy+2*K,r+1,'rgba(24,14,4,.10)');
-  pcircle(g,cx+K,cy+2*K,r,'rgba(24,14,4,.22)');
+  const om=versLumiere(K,2*K);
+  pcircle(g,cx+om.x,cy+om.y,r+1,'rgba(24,14,4,.10)');
+  pcircle(g,cx+om.x,cy+om.y,r,'rgba(24,14,4,.22)');
   pcircle(g,cx,cy,r,edge);
   pcircle(g,cx,cy,r-1,body);
   if(d.type==='S'){ pring(g,cx,cy,Math.max(1,r-2),P.sRed); g.fillStyle=P.sRed; g.fillRect(Math.round(cx),Math.round(cy),1,1); }
   else {
     g.fillStyle = d.type==='B' ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.75)';
-    g.fillRect(Math.round(cx)-1,Math.round(cy)-r+1,2,1);
-    g.fillRect(Math.round(cx)-r+1,Math.round(cy)-1,1,1);
+    const h1=versLumiere(0,-r+1), h2=versLumiere(-r+1,0);
+    g.fillRect(Math.round(cx+h1.x)-1,Math.round(cy+h1.y),2,1);
+    g.fillRect(Math.round(cx+h2.x),Math.round(cy+h2.y)-1,1,1);
   }
 }
 
@@ -2069,10 +2081,10 @@ function shotLineFrom(g,ox,oy,ux,uy,rad){
   for(let t=t0;t<end;t+=1.6){
     if(Math.round((t-t0)/1.6)%5>1) continue;
     const X=Math.round((ox+ux*t)*S), Y=Math.round((oy+uy*t)*S);
-    /* l'ombre passe en sombre : la couleur du camp est claire, elle a besoin
-       d'un appui derriere elle pour rester lisible sur le tapis */
-    g.fillStyle='rgba(10,8,6,.40)'; g.fillRect(X+1,Y+1,1,1);
-    g.fillStyle=couleurCote(turn); g.fillRect(X,Y,1,1);
+    /* le pointille reste dans son brun sombre, dessine pour le tapis : c'est
+       le point de choc au bout qui porte la couleur du camp */
+    g.fillStyle='rgba(255,255,255,.4)'; g.fillRect(X+1,Y+1,1,1);
+    g.fillStyle=P.aim; g.fillRect(X,Y,1,1);
   }
   if(h.d){
     /* l'endroit du choc est garde de cote : il sera trace par-dessus les jetons */
