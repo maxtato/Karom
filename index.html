@@ -225,8 +225,22 @@ let shakeT=0, bannerT=0, bannerTxt='';
    eux la regle parait arbitraire, surtout quand l'ordinateur enchaine. */
 let notes=[];
 const ANNONCE=82;   /* l'annonce du joueur tient plus longtemps que la raison */
-function note(t,ton,duree){ notes.push({txt:t, ton:ton||'bon', t:duree||46}); }
+function note(t,cote,duree){ notes.push({txt:t, cote:cote||turn, t:duree||46}); }
 function nomCote(c){ return c==='W' ? 'JOUEUR 1' : (mode==='solo' ? 'CPU' : 'JOUEUR 2'); }
+/* Une couleur par camp, et aucune autre : vert pour le joueur 1, rouge pour le
+   joueur 2, blanc pour l'ordinateur. Tout ce qui appartient a un camp la porte
+   — son bandeau de score, ses messages, sa visee, sa jauge de puissance. */
+function couleurCote(c){
+  if(c==='W') return P.accent;
+  return mode==='solo' ? P.pale : P.red;
+}
+/* les quatre crans de la jauge, du plus faible au plus fort */
+const RAMPE_ROUGE=['#3A100D','#7E1712','#C8362E','#E8756B'];
+const RAMPE_BLANC=['#33302A','#6E6455','#B3A992','#EDE4D2'];
+function rampeCote(c){
+  if(c==='W') return [P.g1,P.g2,P.g3,P.g4];   /* celle-ci suit le theme */
+  return mode==='solo' ? RAMPE_BLANC : RAMPE_ROUGE;
+}
 let aiPlan=null, aiWait=0, blink=0;
 
 let aimPow=null;
@@ -531,7 +545,7 @@ function newGame(){
   tempsMs=cfg.temps?cfg.temps*1000:0;
   bannerT=0;
   notes=[];
-  if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),'neutre',ANNONCE);
+  if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),turn,ANNONCE);
 }
 function mk(x,y,type){ return {x,y,vx:0,vy:0,r:PR,m:1,type,alive:true}; }
 
@@ -672,7 +686,7 @@ function endStroke(){
     else if(cfg.reine&&queenState.pendingBy===turn)    raison='REINE À COUVRIR';
     else if(cfg.reine&&reine&&queenState.owner===turn) raison='REINE GAGNÉE';
     else if(garde)                                     raison='REJOUE';
-    if(raison) note(raison, garde?'bon':'mauvais');
+    if(raison) note(raison, turn);
   }
 
   const before=turn;
@@ -686,7 +700,7 @@ function endStroke(){
   if(turn!==before){
     bannerT=24;
     /* la main change : on annonce qui prend la suite */
-    if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),'neutre',ANNONCE);
+    if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),turn,ANNONCE);
     if(mode==='duo') rotGoal = (turn==='B') ? Math.PI : 0;
   }
 }
@@ -1409,7 +1423,7 @@ function draw(){
       if(aim) dir=aim;
       else if(aiPlan&&phase==='aim'){ const L=Math.hypot(aiPlan.vx,aiPlan.vy)||1; dir={ux:aiPlan.vx/L,uy:aiPlan.vy/L}; }
       if(dir){
-        traitPix(striker.x,striker.y,dir.ux,dir.uy,SR,P.aim,7);
+        traitPix(striker.x,striker.y,dir.ux,dir.uy,SR,couleurCote(turn),7);
         if(level===0){
           const h2=contact(striker.x,striker.y,dir.ux,dir.uy,SR,null);
           if(h2.d){
@@ -1459,7 +1473,7 @@ function draw(){
     if(pointChoc){                       /* bien visible quel que soit le sens du tir */
       const X=Math.round(pointChoc.x*S), Y=Math.round(pointChoc.y*S);
       pcircle(g,X,Y,R(2*K),'rgba(10,8,6,.60)');
-      pcircle(g,X,Y,R(2*K)-1,P.accent);
+      pcircle(g,X,Y,R(2*K)-1,couleurCote(turn));
     }
   }
   g.restore();
@@ -1469,6 +1483,10 @@ function draw(){
   if(pause){                       /* la fenetre flotte, tout le reste s'efface */
     voile(g,0,0,BUF,HUD_H);                /* l'en-tete : les scores s'eteignent aussi */
     voile(g,0,CTRL_Y,BUF,TOTH-CTRL_Y);     /* la zone de controle et la barre du bas */
+  } else if(phase==='menu'&&page!=='titre'){
+    /* meme regle hors partie : quand une fenetre s'ouvre, la bande du haut
+       s'efface derriere elle, pastille de la reine comprise */
+    voile(g,0,0,BUF,HUD_H);
   }
   if(aimPow!==null) powerBar(g,aimPow);
   if(phase==='over') drawBanner(g);
@@ -1484,7 +1502,7 @@ function drawNote(g){
   const w=Math.ceil(jw(n.txt,taille,fam))+R(18*K), h=R(19*K);
   const x=Math.round((BUF-w)/2), y=BOARD_Y+R(14*K);
   const f=Math.min(1,n.t/14);                    /* fondu sur la fin */
-  const col = n.ton==='mauvais' ? P.red : n.ton==='neutre' ? P.pale : P.accent;
+  const col = couleurCote(n.cote);
   g.globalAlpha=f; tctx.globalAlpha=f;
   plate(g,x,y,w,h,P.panel);
   jtext(n.txt,BUF/2,jmid(y,h,taille,fam),col,taille,fam,'c');
@@ -1535,7 +1553,7 @@ function drawHud(g){
   const cases=[{c:H2.g,x:mx,t:'W'},{c:H2.d,x:BUF-half-mx,t:'B'}];
   for(const s2 of cases){
     const on = s2.c.cote ? (turn===s2.c.cote&&phase!=='over') : false;
-    plate(g,s2.x,y,half,h,on?P.accent:P.panel);
+    plate(g,s2.x,y,half,h,on?couleurCote(s2.c.cote):P.panel);
     const fg=on?P.edge:P.pale, sub2=on?'rgba(10,8,6,.60)':P.mute;
     const dcx=s2.x+pad+R(4*K), dcy=iy+R(8*K);
     pcircle(g,dcx,dcy,R(4*K),on?P.edge:P.panel2);
@@ -1544,11 +1562,11 @@ function drawHud(g){
     stext(g,s2.c.who,s2.x+pad,iy+R(18*K),sub2);
     const nb=String(s2.c.val), sp=s2.c.cote?scorePop[s2.c.cote]:0;
     const cap=sp>12?R(17*K):R(14*K), dy2=sp>0?-R(2*K):0;
-    const col=sp>0?(on?P.edge:P.accent):fg;
+    const col=sp>0?(on?P.edge:couleurCote(s2.c.cote)):fg;
     jtext(nb,s2.x+half-pad,iy+R(9*K)+dy2,col,cap,'j15','r');
     if(sp>0){
       const rr=R(10*K)+Math.round((20-sp)*0.8*K);
-      pring(g,s2.x+half-pad-R(6*K),iy+R(14*K),rr,on?'rgba(10,8,6,.35)':'rgba(61,158,114,.35)');
+      pring(g,s2.x+half-pad-R(6*K),iy+R(14*K),rr,on?'rgba(10,8,6,.35)':'rgba(237,228,210,.30)');
     }
   }
   /* case centrale : la regle qui compte dans ce mode */
@@ -1561,7 +1579,7 @@ function drawHud(g){
     let qt='--';
     if(queenState.owner) qt = queenState.owner==='W'?'CLA':(mode==='solo'?'ORD':'FON');
     else if(queenState.pendingBy) qt='COUVRE';
-    stextC(g,qt,qc,iy+R(16*K),queenState.owner?P.accent:P.mute);
+    stextC(g,qt,qc,iy+R(16*K),queenState.owner?couleurCote(queenState.owner):P.mute);
   } else if(H2.mil==='etoiles'){
     plate(g,qx,y,qw,h,P.panel);
     const e=cfg.etoiles||[0,0,0];
@@ -1613,6 +1631,16 @@ function voile(g,x,y,w,h){
   g.fillStyle='rgba(10,8,6,.72)'; g.fillRect(x,y,w,h);
   g.fillStyle='rgba(10,8,6,.45)';
   for(let j=y+1;j<y+h;j+=2) g.fillRect(x,j,w,1);
+  /* Le texte vit sur son propre calque, pose par-dessus : un rectangle sombre
+     sur le calque du dessous ne l'atteint pas. On l'efface donc en partie, ce
+     qui le fait fondre vers le fond deja assombri. */
+  tctx.save();
+  tctx.globalCompositeOperation='destination-out';
+  tctx.fillStyle='rgba(0,0,0,.80)';
+  /* TX et TY : le voile est parfois pose dans le repere du plateau, le texte
+     toujours dans celui de l'ecran — comme dans jtext, on rattrape l'ecart */
+  tctx.fillRect((x+TX)*KTX,(y+TY)*KTX,w*KTX,h*KTX);
+  tctx.restore();
 }
 function hair(g,x,y,w,h,c){ g.fillStyle=c; g.fillRect(x,y,w,1); g.fillRect(x,y+h-1,w,1); g.fillRect(x,y,1,h); g.fillRect(x+w-1,y,1,h); }
 /* ---------------------------------------------------------------
@@ -1867,10 +1895,10 @@ function drawCtrl(g){
     const lim=Math.min((LP/2-R(8*K))/Math.max(0.001,Math.abs(vx)),
                        hv/Math.max(0.001,Math.abs(vy)));
     for(let d=R(22*K); d<lim; d+=R(5*K)){
-      g.fillStyle=P.accent;
+      g.fillStyle=couleurCote(turn);
       g.fillRect(Math.round(JOY.cx+vx*d),Math.round(JOY.cy+vy*d),1,1);
     }
-    arrow(g,Math.round(JOY.cx+vx*lim),Math.round(JOY.cy+vy*lim),vx,vy,P.accent);
+    arrow(g,Math.round(JOY.cx+vx*lim),Math.round(JOY.cy+vy*lim),vx,vy,couleurCote(turn));
   }
   const jxf=jm.x, jyf=jm.y;
   if(SMOOTH){
@@ -2035,8 +2063,10 @@ function shotLineFrom(g,ox,oy,ux,uy,rad){
   for(let t=t0;t<end;t+=1.6){
     if(Math.round((t-t0)/1.6)%5>1) continue;
     const X=Math.round((ox+ux*t)*S), Y=Math.round((oy+uy*t)*S);
-    g.fillStyle='rgba(255,255,255,.4)'; g.fillRect(X+1,Y+1,1,1);
-    g.fillStyle=P.aim; g.fillRect(X,Y,1,1);
+    /* l'ombre passe en sombre : la couleur du camp est claire, elle a besoin
+       d'un appui derriere elle pour rester lisible sur le tapis */
+    g.fillStyle='rgba(10,8,6,.40)'; g.fillRect(X+1,Y+1,1,1);
+    g.fillStyle=couleurCote(turn); g.fillRect(X,Y,1,1);
   }
   if(h.d){
     /* l'endroit du choc est garde de cote : il sera trace par-dessus les jetons */
@@ -2044,7 +2074,7 @@ function shotLineFrom(g,ox,oy,ux,uy,rad){
     pointChoc={ x:cx+(h.d.x-cx)*rad/(rad+h.d.r), y:cy+(h.d.y-cy)*rad/(rad+h.d.r) };
     return {d:h.d, cx, cy};
   }
-  arrow(g,Math.round((ox+ux*end)*S),Math.round((oy+uy*end)*S),ux,uy,P.aim);
+  arrow(g,Math.round((ox+ux*end)*S),Math.round((oy+uy*end)*S),ux,uy,couleurCote(turn));
   return {d:null, cx:0, cy:0};
 }
 /* le jeton percute repart le long de la ligne des centres */
@@ -2067,7 +2097,7 @@ function ligneRebond(g,d,ux,uy){
   arrow(g,Math.round((d.x+ux*end)*S),Math.round((d.y+uy*end)*S),ux,uy,'rgba(61,158,114,.85)');
 }
 
-function powCol(f){ return f<0.25?P.g1 : f<0.50?P.g2 : f<0.75?P.g3 : P.g4; }
+function powCol(f){ const r=rampeCote(turn); return f<0.25?r[0] : f<0.50?r[1] : f<0.75?r[2] : r[3]; }
 function powerBar(g,pow){
   /* fine, et posee au milieu de la bande de bois du bord droit */
   const bwd=R(5*K), x=Math.round(BX+BW-R(FRAME*S)/2-bwd/2);
