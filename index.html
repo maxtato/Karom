@@ -1590,10 +1590,9 @@ function drawHud(g){
   let capNom=R(10*K);
   if(!H2.g.who){
     const xNom0=pad+2*R(4*K)+R(5*K);
-    const dispo=Math.min(...cases.map(s2=>{
-      const sp=s2.c.cote?scorePop[s2.c.cote]:0;
-      return half-pad-jw(String(s2.c.val),sp>12?R(17*K):R(14*K),'j15')-R(5*K)-xNom0;
-    }));
+    /* la pastille du compte se taille avant le nom : elle a une largeur fixe,
+       le nom prend ce qui reste */
+    const dispo=half-R(4*K)-2*R(9*K)-R(5*K)-xNom0;
     /* On garde celle qui rend le plus grand, pas celle qu'on demande le plus
        grand : la police se cale sur la grille de l'ecran, si bien qu'un corps
        demande plus haut peut s'afficher plus bas. Prendre le premier candidat
@@ -1621,15 +1620,22 @@ function drawHud(g){
       pcircle(g,dcx2,cy2,rj-1,s2.c.col);
       const nb2=String(s2.c.val), sp3=s2.c.cote?scorePop[s2.c.cote]:0;
       const cap2=sp3>12?R(17*K):R(14*K), dy3=sp3>0?-R(2*K):0;
-      const col2=sp3>0?(on?P.edge:couleurCote(s2.c.cote)):fg;
-      /* le nom dans la police des titres, et l'air avant le compte est reserve
+      /* le nom dans la police des titres, et la place du compte est reservee
          d'abord : le nom se contente de ce qui reste, quitte a descendre d'un
          cran, plutot que d'aller toucher le chiffre */
       jtext(s2.c.lab,dcx2+rj+R(5*K),jmid(y,h,capNom,'j25'),fg,capNom,'j25');
-      jtext(nb2,s2.x+half-pad,jmid(y,h,cap2,'j15')+dy3,col2,cap2,'j15','r');
+      /* Le compte dans sa pastille creusee : colle au nom il se lisait comme
+         sa suite. Le disque sombre le detache de la plaque, et le chiffre y
+         reprend la couleur du camp — le seul endroit ou elle ressort quand la
+         plaque est deja peinte. */
+      const rSc=R(9*K), cxSc=s2.x+half-R(4*K)-rSc;
+      pcircle(g,cxSc,cy2,rSc,P.edge);
+      pcircle(g,cxSc,cy2,rSc-1,P.bg);
+      const col2=couleurCote(s2.c.cote);
+      jtext(nb2,cxSc,jmid(y,h,cap2,'j15')+dy3,col2,cap2,'j15','c');
       if(sp3>0){
-        const rr2=R(10*K)+Math.round((20-sp3)*0.8*K);
-        pring(g,s2.x+half-pad-R(6*K),cy2,rr2,on?'rgba(10,8,6,.35)':'rgba(237,228,210,.30)');
+        const rr2=rSc+Math.round((20-sp3)*0.6*K);
+        pring(g,cxSc,cy2,rr2,on?'rgba(10,8,6,.35)':'rgba(237,228,210,.30)');
       }
       continue;
     }
