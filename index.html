@@ -69,8 +69,8 @@ const BW=BUF-2*MARG, BX=MARG;        /* cote et abscisse du plateau */
 const S=BW/W;
 const R=Math.round;
 /* le bandeau du titre coiffe tout le reste et ne bouge jamais */
-const TITRE_H=Math.round(17*K);
-const HUD_H=Math.round(40*K), MSG_H=0, BTN_H=Math.round(30*K);
+const TITRE_H=Math.round(22*K);   /* un peu d'air au-dessus du nom du jeu */
+const HUD_H=Math.round(40*K), MSG_H=0, BTN_H=Math.round(26*K);
 const CTRL_MIN=Math.round(104*K), CTRL_MAX=Math.round(340*K);
 const GAP_MAX=Math.round(24*K);  /* respiration maximale sous l'en-tete */
 let CTRL_H=150, TOTH=0, BOARD_Y=HUD_H, MSG_Y=0, CTRL_Y=0, BTN_Y=0;
@@ -1012,7 +1012,7 @@ function btnRects(){
   const sl=btnSlots(), n=sl.length, out=[];
   if(!n) return out;
   const gap=Math.round(4*K), pad=Math.round(6*K), w=Math.floor((BUF-2*pad-gap*(n-1))/n);
-  for(let i=0;i<n;i++) out.push({x:pad+i*(w+gap), y:BTN_Y+Math.round(4*K), w, h:BTN_H-Math.round(9*K), id:sl[i].id, l:sl[i].l, ico:sl[i].ico});
+  for(let i=0;i<n;i++) out.push({x:pad+i*(w+gap), y:BTN_Y+Math.round(3*K), w, h:BTN_H-Math.round(7*K), id:sl[i].id, l:sl[i].l, ico:sl[i].ico});
   return out;
 }
 function onDown(e){
@@ -1589,17 +1589,19 @@ function drawHud(g){
     const xNom0=pad+2*R(4*K)+R(5*K);
     /* la pastille du compte se taille avant le nom : elle a une largeur fixe,
        le nom prend ce qui reste */
-    const dispo=half-R(4*K)-2*R(9*K)-R(5*K)-xNom0;
+    const dispo=half-R(4*K)-2*R(8*K)-R(5*K)-xNom0;
     /* On garde celle qui rend le plus grand, pas celle qu'on demande le plus
        grand : la police se cale sur la grille de l'ecran, si bien qu'un corps
        demande plus haut peut s'afficher plus bas. Prendre le premier candidat
        qui passe donnerait un resultat au petit bonheur. */
-    const tailles=[R(14*K),R(13*K),R(12*K),R(11*K),R(10*K),R(9*K),R(8*K)];
+    /* le cut fin de la Jersey : sur un ecran a trois fois la densite, le cut
+       large n'offre que 7 ou 15 px, rien entre les deux */
+    const tailles=[R(9*K),R(8*K),R(7*K),R(6*K)];
     capNom=tailles[tailles.length-1];
     let mieux=-1;
     for(const t of tailles){
-      if(cases.every(s2=>jw(s2.c.lab,t,'j25')<=dispo)){
-        const rendu=jcaps(t,'j25');
+      if(cases.every(s2=>jw(s2.c.lab,t,'j15')<=dispo)){
+        const rendu=jcaps(t,'j15');
         if(rendu>mieux){ mieux=rendu; capNom=t; }
       }
     }
@@ -1616,16 +1618,16 @@ function drawHud(g){
       pcircle(g,dcx2,cy2,rj,on?P.edge:P.panel2);
       pcircle(g,dcx2,cy2,rj-1,s2.c.col);
       const nb2=String(s2.c.val), sp3=s2.c.cote?scorePop[s2.c.cote]:0;
-      const cap2=sp3>12?R(17*K):R(14*K), dy3=sp3>0?-R(2*K):0;
+      const cap2=sp3>12?R(14*K):R(11*K), dy3=sp3>0?-R(2*K):0;
       /* le nom dans la police des titres, et la place du compte est reservee
          d'abord : le nom se contente de ce qui reste, quitte a descendre d'un
          cran, plutot que d'aller toucher le chiffre */
-      jtext(s2.c.lab,dcx2+rj+R(5*K),jmid(y,h,capNom,'j25'),fg,capNom,'j25');
+      jtext(s2.c.lab,dcx2+rj+R(5*K),jmid(y,h,capNom,'j15'),fg,capNom,'j15');
       /* Le compte dans sa pastille : colle au nom il se lisait comme sa suite.
          La pastille est l'inverse exact de sa plaque — elle prend la couleur de
          l'encre, le chiffre celle du fond. Elle se detache donc aussi bien sur
          la plaque peinte du joueur actif que sur la plaque sombre de l'autre. */
-      const rSc=R(9*K), cxSc=s2.x+half-R(4*K)-rSc;
+      const rSc=R(8*K), cxSc=s2.x+half-R(4*K)-rSc;
       const encre = on ? P.edge : couleurCote(s2.c.cote);
       const col2  = on ? couleurCote(s2.c.cote) : P.panel;
       pcircle(g,cxSc,cy2,rSc,P.edge);
