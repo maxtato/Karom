@@ -220,11 +220,12 @@ let score={W:0,B:0}, tirsFaits=0, tempsMs=0, comboDernier=0;
 let penalite={W:0,B:0};      /* fautes en attente, faute de jeton a rendre */
 let etoilesFin=0;
 let shakeT=0, bannerT=0, bannerTxt='';
-/* petit mot en fin de tir : pourquoi la main reste ou passe. Il ne bloque
-   rien, il s'efface tout seul — sans lui la regle parait arbitraire, surtout
-   quand c'est l'ordinateur qui enchaine les tirs. */
-let noteT=0, noteTxt='', noteBad=false;
-function note(t,mauvais){ noteTxt=t; noteT=76; noteBad=!!mauvais; }
+/* petits mots de fin de tir : pourquoi la main reste ou passe, puis a qui
+   elle revient. Ils ne bloquent rien et defilent l'un apres l'autre — sans
+   eux la regle parait arbitraire, surtout quand l'ordinateur enchaine. */
+let notes=[];
+function note(t,ton,duree){ notes.push({txt:t, ton:ton||'bon', t:duree||46}); }
+function nomCote(c){ return c==='W' ? 'JOUEUR 1' : (mode==='solo' ? 'CPU' : 'JOUEUR 2'); }
 let aiPlan=null, aiWait=0, blink=0;
 
 let aimPow=null;
@@ -408,7 +409,7 @@ function toBoard(e){
 
 /* ===================== menu ===================== */
 function openMenu(){
-  phase='menu'; page='titre'; joyDrag=null; aiPlan=null; bannerT=0;
+  phase='menu'; page='titre'; joyDrag=null; aiPlan=null; bannerT=0; notes=[];
   rotT=0; rotGoal=0;            /* on quitte parfois une partie a deux, plateau retourne */
 }
 function openMode(){ page='mode'; }
@@ -528,6 +529,8 @@ function newGame(){
   score={W:0,B:0}; tirsFaits=0; comboDernier=0; penalite={W:0,B:0}; etoilesFin=0;
   tempsMs=cfg.temps?cfg.temps*1000:0;
   bannerT=0;
+  notes=[];
+  if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),'neutre');
 }
 function mk(x,y,type){ return {x,y,vx:0,vy:0,r:PR,m:1,type,alive:true}; }
 
@@ -668,7 +671,7 @@ function endStroke(){
     else if(cfg.reine&&queenState.pendingBy===turn)    raison='REINE À COUVRIR';
     else if(cfg.reine&&reine&&queenState.owner===turn) raison='REINE GAGNÉE';
     else if(garde)                                     raison='REJOUE';
-    if(raison) note(raison,!garde);
+    if(raison) note(raison, garde?'bon':'mauvais');
   }
 
   const before=turn;
@@ -681,6 +684,8 @@ function endStroke(){
   aimPw=0; aimX=0; majAim(); placeTouche=false;
   if(turn!==before){
     bannerT=24;
+    /* la main change : on annonce qui prend la suite */
+    if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),'neutre');
     if(mode==='duo') rotGoal = (turn==='B') ? Math.PI : 0;
   }
 }
@@ -859,22 +864,26 @@ function bois(vol,aigu,duree){
   sortie.gain.value=vol;
   sortie.connect(a.destination);
 
-  /* le claquement : douze millisecondes de bruit passe en bande, le bois n'a
-     ni le sifflement des aigus purs ni le grondement des graves */
-  const n=Math.max(1,Math.floor(a.sampleRate*0.012));
+  /* le claquement, et c'est lui qui porte presque tout : dix-huit
+     millisecondes de bruit passe en bande large, monte deux fois plus haut que
+     le corps. Le bois n'a ni le sifflement des aigus purs ni le grondement des
+     graves, d'ou le filtre. */
+  const n=Math.max(1,Math.floor(a.sampleRate*0.018));
   const buf=a.createBuffer(1,n,a.sampleRate), d=buf.getChannelData(0);
   for(let i=0;i<n;i++){ const k=1-i/n; d[i]=(Math.random()*2-1)*k*k; }
   const s=a.createBufferSource(); s.buffer=buf;
   const bp=a.createBiquadFilter();
-  bp.type='bandpass'; bp.frequency.setValueAtTime(1500*aigu,t0); bp.Q.value=1.1;
-  s.connect(bp); bp.connect(sortie); s.start(t0);
+  bp.type='bandpass'; bp.frequency.setValueAtTime(1800*aigu,t0); bp.Q.value=0.6;
+  const gc=a.createGain(); gc.gain.value=2;
+  s.connect(bp); bp.connect(gc); gc.connect(sortie); s.start(t0);
 
-  /* le corps : trois modes aux rapports non entiers, amortis d'autant plus
-     vite qu'ils sont hauts - c'est ce qui fait entendre du bois plein */
-  const modes=[[1,0.55,1],[2.31,0.28,0.62],[3.79,0.15,0.4]];
+  /* le corps : deux modes seulement, discrets et vite eteints. Juste assez
+     pour qu'on entende de la matiere derriere le contact, pas assez pour que
+     ca chante - c'est ce qui rend le choc mat. */
+  const modes=[[1,0.22,0.4],[2.6,0.10,0.25]];
   for(const [rap,amp,tenue] of modes){
     const o=a.createOscillator(), g=a.createGain();
-    o.type='sine'; o.frequency.setValueAtTime(420*aigu*rap,t0);
+    o.type='sine'; o.frequency.setValueAtTime(520*aigu*rap,t0);
     g.gain.setValueAtTime(amp,t0);
     g.gain.exponentialRampToValueAtTime(0.0001,t0+duree*tenue);
     o.connect(g); g.connect(sortie);
@@ -887,14 +896,14 @@ function sndChoc(v){
   if(f<0.06) return;
   chocCd=3;
   /* plus le choc est franc, plus il claque haut et resonne longtemps */
-  bois(0.10+f*0.26, 0.9+f*0.45, 0.05+f*0.06);
+  bois(0.10+f*0.26, 0.9+f*0.45, 0.030+f*0.020);
 }
 function sndBande(v){
   if(bandeCd>0||v<2.2) return;
   bandeCd=4;
   const f=Math.min(1,v/14);
   /* le cadre est une piece bien plus grosse : plus grave, un rien plus long */
-  bois(0.09+f*0.14, 0.5, 0.08+f*0.05);
+  bois(0.09+f*0.14, 0.5, 0.055+f*0.015);
 }
 function sndPoche(rate){
   if(rate){ bip(220,0.16,0.10,110); bip(110,0.22,0.10,55); }
@@ -1468,14 +1477,16 @@ function draw(){
 /* Le mot de fin de tir, pose en haut du plateau : hors de la zone de jeu,
    et hors du repere tourne, donc toujours lisible a l'endroit. */
 function drawNote(g){
-  if(noteT<=0||phase==='menu') return;
+  const n=notes[0];
+  if(!n||phase==='menu') return;
   const taille=R(11*K), fam='j15';
-  const w=Math.ceil(jw(noteTxt,taille,fam))+R(18*K), h=R(19*K);
+  const w=Math.ceil(jw(n.txt,taille,fam))+R(18*K), h=R(19*K);
   const x=Math.round((BUF-w)/2), y=BOARD_Y+R(14*K);
-  const f=Math.min(1,noteT/18);                  /* fondu sur le dernier tiers */
+  const f=Math.min(1,n.t/14);                    /* fondu sur la fin */
+  const col = n.ton==='mauvais' ? P.red : n.ton==='neutre' ? P.pale : P.accent;
   g.globalAlpha=f; tctx.globalAlpha=f;
   plate(g,x,y,w,h,P.panel);
-  jtext(noteTxt,BUF/2,jmid(y,h,taille,fam),noteBad?P.red:P.accent,taille,fam,'c');
+  jtext(n.txt,BUF/2,jmid(y,h,taille,fam),col,taille,fam,'c');
   g.globalAlpha=1; tctx.globalAlpha=1;
 }
 
@@ -1941,11 +1952,15 @@ function drawButtons(g){
   }
 }
 
+/* Le bandeau de fin porte tout : le mot et les deux boutons. Il est donc
+   assez epais pour les loger, avec de l'air autour. */
 function bandeauUI(){
-  const h=R(32*K), bh=R(22*K), gap=R(8*K), bw=R(80*K);
-  const yc=BOARD_Y+Math.round(BW/2)-Math.round((h+R(12*K)+bh)/2);
-  const by=yc+h+R(12*K);
-  return {h,yc,by,
+  const bh=R(22*K), gap=R(8*K), bw=R(80*K);
+  const hTxt=R(26*K), marge=R(13*K), entre=R(11*K);
+  const h=marge+hTxt+entre+bh+marge;
+  const yc=BOARD_Y+Math.round(BW/2)-Math.round(h/2);
+  const yTxt=yc+marge, by=yTxt+hTxt+entre;
+  return {h,yc,yTxt,hTxt,by,
     menu :{x:Math.round(BUF/2-bw-gap/2), y:by, w:bw, h:bh},
     again:{x:Math.round(BUF/2+gap/2),    y:by, w:bw, h:bh}};
 }
@@ -1956,7 +1971,7 @@ function drawBanner(g){
   g.fillStyle=P.edge;   g.fillRect(0,u.yc-3,BUF,u.h+6);
   g.fillStyle=P.panel2; g.fillRect(0,u.yc,BUF,u.h);
   g.fillStyle=P.accent; g.fillRect(0,u.yc,BUF,1); g.fillRect(0,u.yc+u.h-1,BUF,1);
-  jtext(bannerTxt,BUF/2,jmid(u.yc,u.h,R(18*K),'j25'),P.accent,R(18*K),'j25','c');
+  jtext(bannerTxt,BUF/2,jmid(u.yTxt,u.hTxt,R(18*K),'j25'),P.accent,R(18*K),'j25','c');
   for(const [b,lab,id] of [[u.menu,'MENU','fin-menu'],[u.again,'REJOUER','fin-again']]){
     const hit=press.id===id&&press.t>0, dy=hit?R(2*K):0;
     g.fillStyle=hit?P.accent:P.panel; g.fillRect(b.x,b.y+dy,b.w,b.h);
@@ -2091,7 +2106,7 @@ function loop(t){
   if(sinking.length) sinking=sinking.filter(o=>--o.t>0);
   if(pops.length)    pops=pops.filter(o=>--o.t>0);
   if(bannerT>0&&bannerT<1e8) bannerT--;
-  if(noteT>0) noteT--;
+  if(notes.length && --notes[0].t<=0) notes.shift();
   if(Math.abs(rotT-rotGoal)>0.001){
     const pas=Math.PI/26;
     rotT += Math.sign(rotGoal-rotT)*Math.min(pas,Math.abs(rotGoal-rotT));
