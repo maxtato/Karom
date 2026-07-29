@@ -220,6 +220,11 @@ let score={W:0,B:0}, tirsFaits=0, tempsMs=0, comboDernier=0;
 let penalite={W:0,B:0};      /* fautes en attente, faute de jeton a rendre */
 let etoilesFin=0;
 let shakeT=0, bannerT=0, bannerTxt='';
+/* petit mot en fin de tir : pourquoi la main reste ou passe. Il ne bloque
+   rien, il s'efface tout seul — sans lui la regle parait arbitraire, surtout
+   quand c'est l'ordinateur qui enchaine les tirs. */
+let noteT=0, noteTxt='', noteBad=false;
+function note(t,mauvais){ noteTxt=t; noteT=76; noteBad=!!mauvais; }
 let aiPlan=null, aiWait=0, blink=0;
 
 let aimPow=null;
@@ -654,6 +659,18 @@ function endStroke(){
   if(fini) return;
 
   if(cfg.soloStrict) garde=true;      /* mode a un seul joueur : la main reste */
+
+  /* --- dire pourquoi --- */
+  if(!cfg.soloStrict){
+    let raison='';
+    if(faute)                                          raison='PALET EMPOCHÉ';
+    else if(autres>0)                                  raison='JETON ADVERSE';
+    else if(cfg.reine&&queenState.pendingBy===turn)    raison='REINE À COUVRIR';
+    else if(cfg.reine&&reine&&queenState.owner===turn) raison='REINE GAGNÉE';
+    else if(garde)                                     raison='REJOUE';
+    if(raison) note(raison,!garde);
+  }
+
   const before=turn;
   if(!garde) turn = adv;
   phase='aim'; aiPlan=null;
@@ -1445,6 +1462,21 @@ function draw(){
   }
   if(aimPow!==null) powerBar(g,aimPow);
   if(phase==='over') drawBanner(g);
+  else if(!pause) drawNote(g);
+}
+
+/* Le mot de fin de tir, pose en haut du plateau : hors de la zone de jeu,
+   et hors du repere tourne, donc toujours lisible a l'endroit. */
+function drawNote(g){
+  if(noteT<=0||phase==='menu') return;
+  const taille=R(11*K), fam='j15';
+  const w=Math.ceil(jw(noteTxt,taille,fam))+R(18*K), h=R(19*K);
+  const x=Math.round((BUF-w)/2), y=BOARD_Y+R(14*K);
+  const f=Math.min(1,noteT/18);                  /* fondu sur le dernier tiers */
+  g.globalAlpha=f; tctx.globalAlpha=f;
+  plate(g,x,y,w,h,P.panel);
+  jtext(noteTxt,BUF/2,jmid(y,h,taille,fam),noteBad?P.red:P.accent,taille,fam,'c');
+  g.globalAlpha=1; tctx.globalAlpha=1;
 }
 
 /* Trois cases d'en-tete, dont le contenu depend du mode */
@@ -2059,6 +2091,7 @@ function loop(t){
   if(sinking.length) sinking=sinking.filter(o=>--o.t>0);
   if(pops.length)    pops=pops.filter(o=>--o.t>0);
   if(bannerT>0&&bannerT<1e8) bannerT--;
+  if(noteT>0) noteT--;
   if(Math.abs(rotT-rotGoal)>0.001){
     const pas=Math.PI/26;
     rotT += Math.sign(rotGoal-rotT)*Math.min(pas,Math.abs(rotGoal-rotT));
