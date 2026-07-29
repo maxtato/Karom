@@ -25,7 +25,13 @@
       linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
     background-size:4px 4px;
     display:flex;align-items:center;justify-content:center;
-    overflow:hidden;padding:0;touch-action:none;
+    overflow:hidden;touch-action:none;
+    /* on se tient a l'ecart de la barre d'etat et de la barre d'accueil :
+       en mode autonome sur iPhone, le contenu passe sinon dessous. */
+    padding:calc(env(safe-area-inset-top,0px) + 4px)
+            env(safe-area-inset-right,0px)
+            env(safe-area-inset-bottom,0px)
+            env(safe-area-inset-left,0px);
   }
   #wrap{position:relative;line-height:0}
   #cv{display:block;touch-action:none;image-rendering:pixelated;image-rendering:crisp-edges}
@@ -82,8 +88,21 @@ let MENU_H=0;                 /* hauteur offerte aux pages de menu */
 const JOY={cx:BUF/2, cy:0, r:Math.round(44*K), kx:0, ky:0};
 const TRK={x0:0, x1:0, y:0, h:Math.round(12*K)};
 const PWR={y:0};   /* frontiere entre la reglette de placement et le pave */
+/* Zone reellement disponible : la fenetre moins les marges de securite.
+   On lit le remplissage effectif du corps, deja calcule par le navigateur a
+   partir des env(safe-area-inset-*) : c'est du px resolu, pas une formule. */
+function vpW(){
+  const s=getComputedStyle(document.body);
+  const n=v=>{const p=parseFloat(v); return isFinite(p)?p:0;};
+  return Math.max(1, window.innerWidth-n(s.paddingLeft)-n(s.paddingRight));
+}
+function vpH(){
+  const s=getComputedStyle(document.body);
+  const n=v=>{const p=parseFloat(v); return isFinite(p)?p:0;};
+  return Math.max(1, window.innerHeight-n(s.paddingTop)-n(s.paddingBottom));
+}
 function metrics(){
-  const vw=Math.max(1,window.innerWidth), vh=Math.max(1,window.innerHeight);
+  const vw=vpW(), vh=vpH();
   const want=Math.round(BUF*vh/vw)-HUD_H-BW-MSG_H-BTN_H;
   const reste=Math.max(CTRL_MIN,Math.min(CTRL_MAX+GAP_MAX,want));
   /* le plateau se decolle de l'en-tete des qu'il y a de quoi */
@@ -370,7 +389,7 @@ function jw(t,capsBuf,fam){
 /* ===================== mise en page ===================== */
 function layout(){
   metrics();
-  const k=Math.min(window.innerWidth/BUF, window.innerHeight/TOTH);
+  const k=Math.min(vpW()/BUF, vpH()/TOTH);
   CSSW=Math.ceil(BUF*k); CSSH=Math.ceil(TOTH*k); KTX=CSSW/BUF;
   DPR=Math.max(1,Math.round(window.devicePixelRatio||1));
   cv.style.width=CSSW+'px'; cv.style.height=CSSH+'px';
