@@ -242,6 +242,16 @@ function couleurCote(c){
   if(c==='W') return P.accent;
   return mode==='solo' ? P.pale : P.red;
 }
+/* Le texte pose sur une plaque peinte doit trancher sur sa peinture. Les deux
+   encres sont fixes et non tirees du theme : en theme clair, le ton "pale" du
+   theme est justement l'encre sombre, et s'y fier peignait du sombre sur du
+   sombre — c'est ce qui rendait la case du CPU illisible. */
+const ENCRE_CLAIRE='#F5EFE2', ENCRE_SOMBRE='#181209';
+function encreSur(fond){
+  const n=parseInt(fond.slice(1),16);
+  const l=((n>>16&255)*0.299+((n>>8)&255)*0.587+(n&255)*0.114)/255;
+  return l>0.45 ? ENCRE_SOMBRE : ENCRE_CLAIRE;
+}
 /* les quatre crans de la jauge, du plus faible au plus fort */
 const RAMPE_ROUGE=['#3A100D','#7E1712','#C8362E','#E8756B'];
 const RAMPE_BLANC=['#33302A','#6E6455','#B3A992','#EDE4D2'];
@@ -1214,8 +1224,10 @@ function roundCut(g,x0,y0,x1,y1,r,col){
     g.fillRect(x1-1-dx,y1-1-dy,1,1);
   }
 }
-function plate(g,x,y,w,h,fill){
-  g.fillStyle=P.edge; g.fillRect(x,y+2,w,h);
+/* ombre : passer false pour une plaque posee a plat. Les cases de l'en-tete
+   s'en passent — sur fond clair l'ombre se lisait comme un trait epais. */
+function plate(g,x,y,w,h,fill,ombre){
+  if(ombre!==false){ g.fillStyle=P.edge; g.fillRect(x,y+2,w,h); }
   g.fillStyle=fill;   g.fillRect(x,y,w,h);
   g.fillStyle=P.edge; g.fillRect(x,y,w,1); g.fillRect(x,y+h-1,w,1); g.fillRect(x,y,1,h); g.fillRect(x+w-1,y,1,h);
 }
@@ -1678,8 +1690,8 @@ function drawHud(g){
   }
   for(const s2 of cases){
     const on = s2.c.cote ? (turn===s2.c.cote&&phase!=='over') : false;
-    plate(g,s2.x,y,half,h,on?couleurCote(s2.c.cote):P.panel);
-    const fg=on?P.edge:P.pale, sub2=on?'rgba(10,8,6,.60)':P.mute;
+    plate(g,s2.x,y,half,h,on?couleurCote(s2.c.cote):P.panel,false);
+    const fg=on?encreSur(couleurCote(s2.c.cote)):P.pale, sub2=on?'rgba(10,8,6,.60)':P.mute;
     if(!s2.c.who){
       /* Une seule ligne — le jeton, le nom du joueur, son compte. Rien a caser
          dessous, donc tout monte d'un cran et remplit la case. */
@@ -1698,8 +1710,8 @@ function drawHud(g){
          l'encre, le chiffre celle du fond. Elle se detache donc aussi bien sur
          la plaque peinte du joueur actif que sur la plaque sombre de l'autre. */
       const rSc=R(8*K), cxSc=s2.x+half-R(4*K)-rSc;
-      const encre = on ? P.edge : couleurCote(s2.c.cote);
-      const col2  = on ? couleurCote(s2.c.cote) : P.panel;
+      const encre = on ? encreSur(couleurCote(s2.c.cote)) : couleurCote(s2.c.cote);
+      const col2  = on ? couleurCote(s2.c.cote) : encreSur(couleurCote(s2.c.cote));
       pcircle(g,cxSc,cy2,rSc,P.edge);
       pcircle(g,cxSc,cy2,rSc-1,encre);
       jtext(nb2,cxSc,jmid(y,h,cap2,'j15')+dy3,col2,cap2,'j15','c');
@@ -1716,7 +1728,7 @@ function drawHud(g){
     stext(g,s2.c.who,s2.x+pad,iy+R(18*K),sub2);
     const nb=String(s2.c.val), sp=s2.c.cote?scorePop[s2.c.cote]:0;
     const cap=sp>12?R(17*K):R(14*K), dy2=sp>0?-R(2*K):0;
-    const col=sp>0?(on?P.edge:couleurCote(s2.c.cote)):fg;
+    const col=sp>0?(on?encreSur(couleurCote(s2.c.cote)):couleurCote(s2.c.cote)):fg;
     jtext(nb,s2.x+half-pad,iy+R(9*K)+dy2,col,cap,'j15','r');
     if(sp>0){
       const rr=R(10*K)+Math.round((20-sp)*0.8*K);
@@ -1726,7 +1738,7 @@ function drawHud(g){
   /* case centrale : la regle qui compte dans ce mode */
   const qx=half+R(4*K), qw=BUF-2*qx, qc=qx+qw/2;
   if(H2.mil==='reine'){
-    plate(g,qx,y,qw,h,queenState.owner?P.panel2:P.panel);
+    plate(g,qx,y,qw,h,queenState.owner?P.panel2:P.panel,false);
     const q=discs.find(d=>d.type==='Q');
     pcircle(g,qc,iy+R(8*K),R(4*K),P.qEdge);
     pcircle(g,qc,iy+R(8*K),R(4*K)-1,(q&&q.alive)?P.qPiece:P.panel2);
@@ -1735,7 +1747,7 @@ function drawHud(g){
     else if(queenState.pendingBy) qt='COUVRE';
     stextC(g,qt,qc,iy+R(16*K),queenState.owner?couleurCote(queenState.owner):P.mute);
   } else if(H2.mil==='etoiles'){
-    plate(g,qx,y,qw,h,P.panel);
+    plate(g,qx,y,qw,h,P.panel,false);
     const e=cfg.etoiles||[0,0,0];
     let acquis=0;
     if(tirsFaits<=e[0]) acquis=3; else if(tirsFaits<=e[1]) acquis=2; else if(tirsFaits<=e[2]) acquis=1;
@@ -1745,16 +1757,16 @@ function drawHud(g){
     }
     stextC(g,'ETOILES',qc,iy+R(16*K),P.mute);
   } else if(H2.mil==='temps'){
-    plate(g,qx,y,qw,h,tempsMs<15000?P.panel2:P.panel);
+    plate(g,qx,y,qw,h,tempsMs<15000?P.panel2:P.panel,false);
     jtext(mmss(tempsMs),qc,iy+R(3*K),tempsMs<15000?cfg.teinte:P.pale,R(11*K),'j15','c');
     stextC(g,'TEMPS',qc,iy+R(16*K),P.mute);
   } else if(H2.mil==='combo'){
-    plate(g,qx,y,qw,h,P.panel);
+    plate(g,qx,y,qw,h,P.panel,false);
     const mult = cfg.combo ? cfg.combo[Math.min(Math.max(comboDernier,1),cfg.combo.length)-1] : 1;
     jtext('X'+mult,qc,iy+R(3*K),comboDernier>1?cfg.teinte:P.mute,R(11*K),'j15','c');
     stextC(g,'COMBO',qc,iy+R(16*K),P.mute);
   } else {
-    plate(g,qx,y,qw,h,P.panel);
+    plate(g,qx,y,qw,h,P.panel,false);
     jtext(String(cfg.cible||'--'),qc,iy+R(3*K),P.pale,R(11*K),'j15','c');
     stextC(g,'CIBLE',qc,iy+R(16*K),P.mute);
   }
