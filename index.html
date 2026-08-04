@@ -50,7 +50,7 @@ const POCKETS=[
 const BAND_O=146, BAND_I=183;   /* ecartes pour que les pastilles tiennent pile entre les deux */
 const ART={dots:true, square:false, pale:false};
 const WOOD=3;   /* 0 voile  1 fil fin  2 veine large  3 presque uni */
-const SURFACE='marbre';   /* 'bois' : contreplaque de bouleau  'marbre' : dalle */
+let surface=1;   /* revetement du plateau : 0 bois, 1 marbre — choisi dans les reglages */
 /* Marbre gris-vert : un fond sourd, deux nuances proches pour les nuages, et
    deux tons francs pour les veines — l'un clair, l'autre presque noir. */
 const MARBRE={base:'#A6B1A6', clair:'#B4BEB3', sombre:'#97A398',
@@ -965,7 +965,7 @@ function sndFin(gagne){
 /* ===================== sauvegarde ===================== */
 let records={};
 function sauver(){
-  try{ localStorage.setItem('karom', JSON.stringify({level,fireMode,theme,son,records})); }catch(e){}
+  try{ localStorage.setItem('karom', JSON.stringify({level,fireMode,theme,son,surface,records})); }catch(e){}
 }
 function chargerSauvegarde(){
   try{
@@ -975,6 +975,7 @@ function chargerSauvegarde(){
     if(d.fireMode===0||d.fireMode===1) fireMode=d.fireMode;
     if(d.theme===0||d.theme===1) theme=d.theme;
     if(d.son===0||d.son===1) son=d.son;
+    if(d.surface===0||d.surface===1) surface=d.surface;
     if(d.records&&typeof d.records==='object') records=d.records;
   }catch(e){}
 }
@@ -1055,7 +1056,7 @@ function onDown(e){
       else if(dans(u.regl))    { press={id:'set',t:9};   openMode(); }
       else if(dans(u.regles))  { press={id:'rules',t:9}; page='regles'; rulePage=0; }
     } else if(page==='mode'){
-      const u=modeUI(), bx=BX+u.btn.x, by=BOARD_Y+u.btn.y;
+      const u=modeUI(), bx=BX+u.btn.x, by=hautPage()+u.btn.y;
       if(c.cx>=bx&&c.cx<=bx+u.btn.w&&c.cy>=by&&c.cy<=by+u.btn.h){
         press={id:'fen-back',t:9}; page='titre'; e.preventDefault(); return;
       }
@@ -1064,6 +1065,7 @@ function onDown(e){
           press={id:r.k+r.i,t:9};
           if(r.k==='jou') modeChoix=r.i;
           else if(r.k==='lvl') level=r.i;
+          else if(r.k==='rev'){ surface=r.i; bg=null; }   /* le plateau se retrace */
           else if(r.k==='the'){ theme=r.i; applyTheme(); }
           else if(r.k==='son') son=r.i?0:1;
           else fireMode=r.i;
@@ -1090,6 +1092,7 @@ function onDown(e){
       if(c.cx>=r.x&&c.cx<=r.x+r.w&&c.cy>=r.y&&c.cy<=r.y+r.h){
         press={id:r.k+r.i,t:9};
         if(r.k==='lvl') level=r.i; else if(r.k==='tir') fireMode=r.i;
+        else if(r.k==='rev'){ surface=r.i; bg=null; }
         else if(r.k==='the'){ theme=r.i; applyTheme(); }
         else if(r.k==='son') son=r.i?0:1;
         sauver();
@@ -1327,7 +1330,7 @@ function buildBg(){
   const c=document.createElement('canvas'); c.width=BW; c.height=BW;
   const g=c.getContext('2d');
   const F=R(FRAME*S), E=BW, M=BW/2;
-  const pierre = SURFACE==='marbre';
+  const pierre = surface===1;
   const felt  = pierre ? MARBRE.base : (ART.pale ? '#EFE2C2' : P.felt);
   const feltH = ART.pale ? '#F8F0DC' : P.feltHi;
   const feltL = ART.pale ? '#DFCEA6' : P.feltLo;
@@ -1854,7 +1857,7 @@ function chargerMode(id){
   if(cfg.soloStrict) modeChoix=0;
 }
 function modeCourant(){ return MODES.find(x=>x.id===modeId)||MODES[0]; }
-const TOUTES_OPTIONS=[{k:'jou',t:'JOUEURS',n:2},{k:'lvl',t:'DIFFICULTE',n:3},{k:'tir',t:'DECLENCHEMENT',n:2},{k:'the',t:'THEME',n:2},{k:'son',t:'SON',n:2}];
+const TOUTES_OPTIONS=[{k:'jou',t:'JOUEURS',n:2},{k:'lvl',t:'DIFFICULTE',n:3},{k:'tir',t:'DECLENCHEMENT',n:2},{k:'rev',t:'REVÊTEMENT',n:2},{k:'the',t:'THEME',n:2},{k:'son',t:'SON',n:2}];
 /* un mode solo n'affiche ni le nombre de joueurs ni la difficulte de l'ordinateur */
 function OPTROWS_(){
   const l = cfg.soloStrict ? TOUTES_OPTIONS.filter(r=>r.k!=='jou'&&r.k!=='lvl') : TOUTES_OPTIONS;
@@ -1869,7 +1872,9 @@ function optRectsLocal(){
   });
   return out;
 }
-function optRects(){ return optRectsLocal().map(r=>({k:r.k,i:r.i,x:r.x+BX,y:r.y+BOARD_Y,w:r.w,h:r.h})); }
+/* hautPage() et non BOARD_Y : hors partie la page remonte de la hauteur de
+   l'en-tete, et les zones de clic doivent la suivre comme le dessin */
+function optRects(){ return optRectsLocal().map(r=>({k:r.k,i:r.i,x:r.x+BX,y:r.y+hautPage(),w:r.w,h:r.h})); }
 
 function drawMenu(g){
   if(page==='titre'){
@@ -1937,10 +1942,12 @@ function menuMode(g){
   g.fillStyle=P.panel;            g.fillRect(u.wx,u.wy,u.ww,u.wh);
   hair(g,u.wx,u.wy,u.ww,u.wh,P.panel2);
   jtext(pause?'PAUSE':'REGLAGES',BW/2,u.wy+R(11*K),P.accent,R(8*K),'j25','c');
-  const noms={jou:['1 JOUEUR','2 JOUEURS'], lvl:LEVELS.map(l=>l.n), tir:['AU RELACHER','AU BOUTON'], the:THEMES.map(t=>t.n), son:['AVEC','SANS']};
+  const noms={jou:['1 JOUEUR','2 JOUEURS'], lvl:LEVELS.map(l=>l.n), tir:['AU RELACHER','AU BOUTON'],
+              rev:['BOIS','MARBRE'], the:THEMES.map(t=>t.n), son:['AVEC','SANS']};
   OPTROWS_().forEach((row,i)=>stext(g,row.t,u.wx+R(10*K),u.row0+i*u.step-R(11*K),P.mute));
   for(const o of optRectsLocal()){
-    const on = o.k==='jou' ? o.i===modeChoix : o.k==='lvl' ? o.i===level : o.k==='the' ? o.i===theme : o.k==='son' ? o.i===(son?0:1) : o.i===fireMode;
+    const on = o.k==='jou' ? o.i===modeChoix : o.k==='lvl' ? o.i===level : o.k==='rev' ? o.i===surface
+             : o.k==='the' ? o.i===theme : o.k==='son' ? o.i===(son?0:1) : o.i===fireMode;
     const hit = press.id===o.k+o.i && press.t>0, dy=hit?R(2*K):0;
     g.fillStyle = on?P.accent:(hit?P.panel2:P.bg); g.fillRect(o.x,o.y+dy,o.w,o.h);
     hair(g,o.x,o.y+dy,o.w,o.h,(on||hit)?P.accent:P.panel2);
