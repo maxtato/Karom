@@ -18,9 +18,13 @@ pivote entre les tours.
 
 ## Réglages
 
-Déclenchement du tir (au relâcher ou au bouton), thème sombre ou clair,
-son. Les réglages et les records de chaque mode sont conservés dans le
-navigateur.
+Langue (français ou anglais), déclenchement du tir (au relâcher ou au bouton),
+revêtement du plateau (bois ou marbre), thème sombre ou clair, son. Les
+réglages et les records de chaque mode sont conservés dans le navigateur.
+
+Toute l'interface est traduite. Les textes vivent dans une seule table, chaque
+entrée portant ses deux versions côte à côte : il devient impossible d'en
+traduire une et d'oublier l'autre.
 
 ## Développement
 
