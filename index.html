@@ -64,7 +64,106 @@ function baseY(t){ return t==='W' ? BASE_Y : BASE_Y2; }
 const BASE_X0=200, BASE_X1=800;
 
 const FRICTION=0.9971, REST_D=0.94, REST_W=0.72, STOP=0.06, MAXPOW=32, SUB=6;
-const LEVELS=[{n:'FACILE',e:0.50},{n:'NORMAL',e:0.06},{n:'DIFFICILE',e:0.03}];
+
+/* ===================== langues ===================== */
+let langue=0;   /* 0 : francais, 1 : anglais — choisi dans les reglages */
+/* Chaque entree porte ses deux versions cote a cote : une seule table a tenir,
+   et il devient impossible d'en traduire une et d'oublier l'autre. {0} et {1}
+   sont remplaces par les arguments passes a tr(). */
+const TXT={
+  langue:      ['FRANÇAIS','ENGLISH'],
+  /* joueurs */
+  j1:          ['JOUEUR 1','PLAYER 1'],
+  j2:          ['JOUEUR 2','PLAYER 2'],
+  cpu:         ['CPU','CPU'],
+  /* mots de fin de tir */
+  tour:        ['AU TOUR DE {0}','{0} TO PLAY'],
+  rejoue:      ['{0} REJOUE','{0} PLAYS AGAIN'],
+  palet:       ['{0} : PALET EMPOCHÉ','{0} : STRIKER POTTED'],
+  adverse:     ['{0} : JETON ADVERSE','{0} : OPPONENT PIECE'],
+  couvreReine: ['{0} COUVRE LA REINE','{0} COVERS THE QUEEN'],
+  gagneReine:  ['{0} GAGNE LA REINE','{0} WINS THE QUEEN'],
+  /* fin de partie */
+  gagne:       ['GAGNÉ !','YOU WIN!'],
+  perdu:       ['PERDU','YOU LOSE'],
+  clairsGagne: ['CLAIRS !','LIGHTS!'],
+  foncesGagne: ['FONCÉS !','DARKS!'],
+  /* boutons */
+  start:       ['START','START'],
+  reglages:    ['REGLAGES','SETTINGS'],
+  regles:      ['REGLES','RULES'],
+  retour:      ['RETOUR','BACK'],
+  pause:       ['PAUSE','PAUSE'],
+  reprendre:   ['REPRENDRE','RESUME'],
+  rejouer:     ['REJOUER','REPLAY'],
+  menu:        ['MENU','MENU'],
+  tirer:       ['TIRER','SHOOT'],
+  page:        ['PAGE {0} / {1}','PAGE {0} / {1}'],
+  /* reglages */
+  optJoueurs:  ['JOUEURS','PLAYERS'],
+  optNiveau:   ['DIFFICULTE','DIFFICULTY'],
+  optTir:      ['DECLENCHEMENT','TRIGGER'],
+  optRev:      ['REVÊTEMENT','SURFACE'],
+  optTheme:    ['THEME','THEME'],
+  optSon:      ['SON','SOUND'],
+  optLangue:   ['LANGUE','LANGUAGE'],
+  unJoueur:    ['1 JOUEUR','1 PLAYER'],
+  deuxJoueurs: ['2 JOUEURS','2 PLAYERS'],
+  facile:      ['FACILE','EASY'],
+  normal:      ['NORMAL','NORMAL'],
+  difficile:   ['DIFFICILE','HARD'],
+  auRelacher:  ['AU RELACHER','ON RELEASE'],
+  auBouton:    ['AU BOUTON','ON BUTTON'],
+  bois:        ['BOIS','WOOD'],
+  marbre:      ['MARBRE','MARBLE'],
+  sombre:      ['SOMBRE','DARK'],
+  clair:       ['CLAIR','LIGHT'],
+  avec:        ['AVEC','ON'],
+  sans:        ['SANS','OFF'],
+  /* en-tete */
+  hScore:      ['SCORE','SCORE'],
+  hPoints:     ['POINTS','POINTS'],
+  hTirs:       ['TIRS','SHOTS'],
+  hRestants:   ['RESTANTS','LEFT'],
+  hJetons:     ['JETONS','PIECES'],
+  hEnJeu:      ['EN JEU','IN PLAY'],
+  hEtoiles:    ['ETOILES','STARS'],
+  hTemps:      ['TEMPS','TIME'],
+  hCombo:      ['COMBO','COMBO'],
+  hCible:      ['CIBLE','TARGET'],
+  qClairs:     ['CLA','LGT'],
+  qOrdi:       ['ORD','CPU'],
+  qFonces:     ['FON','DRK'],
+  qCouvre:     ['COUVRE','COVER'],
+  /* accueil */
+  niveau:      ['NIVEAU : {0}','LEVEL: {0}'],
+  recordTirs:  ['RECORD : {0} TIRS','BEST: {0} SHOTS'],
+  recordPts:   ['RECORD : {0} POINTS','BEST: {0} POINTS'],
+  victoires:   ['VICTOIRES : {0}','WINS: {0}'],
+  aucunRecord: ['AUCUN RECORD','NO RECORD YET'],
+  nbJoueurs:   ['{0} JOUEUR{1}    {2}','{0} PLAYER{1}    {2}'],
+  /* resume des regles d'un mode */
+  rPions:      ['{0} JETONS PAR CAMP','{0} PIECES PER SIDE'],
+  rVider:      ['VIDER LE PLATEAU','CLEAR THE BOARD'],
+  rVaut:       ['UN JETON VAUT {0} POINTS','A PIECE IS WORTH {0} POINTS'],
+  rTousDeux:   ['TOUS LES JETONS COMPTENT POUR LES DEUX','ALL PIECES COUNT FOR BOTH'],
+  rValeurs:    ['NOIR {0}  BLANC {1}','DARK {0}  LIGHT {1}'],
+  rReineVaut:  ['  REINE {0}','  QUEEN {0}'],
+  rTirs:       ['{0} TIRS','{0} SHOTS'],
+  rSecondes:   ['{0} SECONDES','{0} SECONDS'],
+  rCible:      ['CIBLE {0}','TARGET {0}'],
+  rCombo:      ['COMBO X{0}','COMBO X{0}'],
+  rReineLibre: ['REINE LIBRE','QUEEN FREE'],
+  rReineCouv:  ['REINE A COUVRIR','COVER THE QUEEN'],
+  rEtoiles:    ['3 ETOILES A {0}','3 STARS AT {0}']
+};
+function tr(cle,...arg){
+  const e=TXT[cle];
+  let out = e ? e[langue] : cle;
+  arg.forEach((v,i)=>{ out=out.split('{'+i+'}').join(v); });
+  return out;
+}
+const LEVELS=[{n:'facile',e:0.50},{n:'normal',e:0.06},{n:'difficile',e:0.03}];
 let level=1;
 
 /* ===================== tampon pixel ===================== */
@@ -234,7 +333,7 @@ let shakeT=0, bannerT=0, bannerTxt='';
 let notes=[];
 const ANNONCE=82;   /* l'annonce du joueur tient plus longtemps que la raison */
 function note(t,cote,duree){ notes.push({txt:t, cote:cote||turn, t:duree||46}); }
-function nomCote(c){ return c==='W' ? 'JOUEUR 1' : (mode==='solo' ? 'CPU' : 'JOUEUR 2'); }
+function nomCote(c){ return c==='W' ? tr('j1') : (mode==='solo' ? tr('cpu') : tr('j2')); }
 /* Une couleur par camp, et aucune autre : vert pour le joueur 1, rouge pour le
    joueur 2, blanc pour l'ordinateur. Tout ce qui appartient a un camp la porte
    — son bandeau de score, ses messages, sa visee, sa jauge de puissance. */
@@ -263,10 +362,10 @@ let aiPlan=null, aiWait=0, blink=0;
 
 let aimPow=null;
 const THEMES=[
-  {n:'SOMBRE', c:{bg:'#14110E',panel:'#1E1A16',panel2:'#2A241E',edge:'#0A0806',
+  {n:'sombre', c:{bg:'#14110E',panel:'#1E1A16',panel2:'#2A241E',edge:'#0A0806',
                   pale:'#EDE4D2',mute:'#7A6E5F',accent:'#3D9E72',
                   g1:'#123024',g2:'#1E6349',g3:'#3D9E72',g4:'#6FD3A6'}},
-  {n:'CLAIR',  c:{bg:'#E4D2A8',panel:'#F1E4C6',panel2:'#C0A776',edge:'#3A2C18',
+  {n:'clair',  c:{bg:'#E4D2A8',panel:'#F1E4C6',panel2:'#C0A776',edge:'#3A2C18',
                   pale:'#2E2415',mute:'#7C6845',accent:'#2E7C58',
                   g1:'#1B4C36',g2:'#2E7C58',g3:'#43A87A',g4:'#78D9AE'}}
 ];
@@ -456,14 +555,14 @@ function openMode(){ page='mode'; }
 /* niveau et record du mode affiche, sous les puces de l'accueil */
 function lignesInfo(){
   const L=[];
-  if(!cfg.soloStrict) L.push('NIVEAU : '+LEVELS[level].n);
+  if(!cfg.soloStrict) L.push(tr('niveau',tr(LEVELS[level].n)));
   const rec=records[modeId];
   if(rec){
-    if(rec.tirs!==undefined)       L.push('RECORD : '+rec.tirs+' TIRS');
-    else if(rec.score!==undefined) L.push('RECORD : '+rec.score+' POINTS');
-    else if(rec.vic)               L.push('VICTOIRES : '+rec.vic);
+    if(rec.tirs!==undefined)       L.push(tr('recordTirs',rec.tirs));
+    else if(rec.score!==undefined) L.push(tr('recordPts',rec.score));
+    else if(rec.vic)               L.push(tr('victoires',rec.vic));
   }
-  if(!L.length) L.push('AUCUN RECORD');
+  if(!L.length) L.push(tr('aucunRecord'));
   return L;
 }
 function carrousel(){
@@ -505,18 +604,19 @@ function indexMode(){ const i=MODES.findIndex(m=>m.id===modeId); return i<0?0:i;
 function defiler(d){ chargerMode(MODES[(indexMode()+d+MODES.length)%MODES.length].id); }
 function resumeRegles(){
   const L=[];
-  if(cfg.but==='couleur') L.push(cfg.pions+' JETONS PAR CAMP');
-  else if(cfg.but==='vider') L.push('VIDER LE PLATEAU');
-  else if(!cfg.camps) L.push('UN JETON VAUT '+cfg.valeurs.W+' POINTS');
-  else L.push('TOUS LES JETONS COMPTENT POUR LES DEUX');
+  if(cfg.but==='couleur') L.push(tr('rPions',cfg.pions));
+  else if(cfg.but==='vider') L.push(tr('rVider'));
+  else if(!cfg.camps) L.push(tr('rVaut',cfg.valeurs.W));
+  else L.push(tr('rTousDeux'));
   const b=[];
-  if(cfg.but==='points'&&cfg.camps) b.push('NOIR '+cfg.valeurs.B+'  BLANC '+cfg.valeurs.W+(cfg.reine?'  REINE '+cfg.valeurs.Q:''));
-  if(cfg.tirs)  b.push(cfg.tirs+' TIRS');
-  if(cfg.temps) b.push(cfg.temps+' SECONDES');
-  if(cfg.cible) b.push('CIBLE '+cfg.cible);
-  if(cfg.combo) b.push('COMBO X'+cfg.combo[cfg.combo.length-1]);
-  if(cfg.reine) b.push(cfg.couvrir==='non'?'REINE LIBRE':'REINE A COUVRIR');
-  if(cfg.etoiles) b.push('3 ETOILES A '+cfg.etoiles[0]);
+  if(cfg.but==='points'&&cfg.camps)
+    b.push(tr('rValeurs',cfg.valeurs.B,cfg.valeurs.W)+(cfg.reine?tr('rReineVaut',cfg.valeurs.Q):''));
+  if(cfg.tirs)  b.push(tr('rTirs',cfg.tirs));
+  if(cfg.temps) b.push(tr('rSecondes',cfg.temps));
+  if(cfg.cible) b.push(tr('rCible',cfg.cible));
+  if(cfg.combo) b.push(tr('rCombo',cfg.combo[cfg.combo.length-1]));
+  if(cfg.reine) b.push(cfg.couvrir==='non'?tr('rReineLibre'):tr('rReineCouv'));
+  if(cfg.etoiles) b.push(tr('rEtoiles',cfg.etoiles[0]));
   /* tout sur une ligne debordait de la carte des qu'un mode avait beaucoup a
      dire : on remplit ligne apres ligne, dans la largeur disponible */
   if(b.length){
@@ -534,19 +634,25 @@ function resumeRegles(){
 function modeUI(){
   const n=OPTROWS_().length;
   const wx=R(18*K), ww=BW-2*wx, pad=wx+R(10*K);
-  const dRow=R((n>=5?33:36)*K), step=R((n>=5?31:34)*K), hRow=R(18*K), hBtn=R(22*K);
+  /* la fenetre se resserre a mesure qu'elle s'allonge : a sept lignes elle
+     depasserait sinon le plateau quand on l'ouvre en pause */
+  const dRow=R((n>=6?29:n>=5?33:36)*K), step=R((n>=6?27:n>=5?31:34)*K), hRow=R(18*K), hBtn=R(22*K);
+  /* l'intitule se loge dans le blanc laisse au-dessus de sa rangee : quand les
+     rangees se resserrent il descend d'autant, sinon il mord sur le bouton du
+     dessus */
+  const dLab=Math.min(R(11*K), step-hRow-R(2*K));
   const finRows=dRow+(n-1)*step+hRow;
   const wh=finRows+R(12*K)+hBtn+R(10*K);
   const wy=Math.round((hMenu()-wh)/2);
   const by=wy+finRows+R(12*K), lw=BW-2*pad;
   if(pause){
     const g2=R(5*K), w3=Math.floor((lw-2*g2)/3);
-    return {wx,wy,ww,wh,pad,step,row0:wy+dRow,hRow,
+    return {wx,wy,ww,wh,pad,step,dLab,row0:wy+dRow,hRow,
       btn: {x:pad,             y:by, w:w3, h:hBtn},
       btn2:{x:pad+w3+g2,       y:by, w:w3, h:hBtn},
       btn3:{x:pad+2*(w3+g2),   y:by, w:lw-2*(w3+g2), h:hBtn}};
   }
-  return {wx,wy,ww,wh,pad,step,row0:wy+dRow,hRow,
+  return {wx,wy,ww,wh,pad,step,dLab,row0:wy+dRow,hRow,
     btn:{x:pad,y:by,w:lw,h:hBtn}, btn2:null};
 }
 function start(which){
@@ -584,7 +690,7 @@ function newGame(){
   tempsMs=cfg.temps?cfg.temps*1000:0;
   bannerT=0;
   notes=[];
-  if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),turn,ANNONCE);
+  if(!cfg.soloStrict) note(tr('tour',nomCote(turn)),turn,ANNONCE);
 }
 function mk(x,y,type){ return {x,y,vx:0,vy:0,r:PR,m:1,type,alive:true}; }
 
@@ -723,11 +829,11 @@ function endStroke(){
        le nom se lit meme quand on ne regarde pas le bandeau des scores */
     const qui=nomCote(turn);
     let raison='';
-    if(faute)                                          raison=qui+' : PALET EMPOCHÉ';
-    else if(autres>0)                                  raison=qui+' : JETON ADVERSE';
-    else if(cfg.reine&&queenState.pendingBy===turn)    raison=qui+' COUVRE LA REINE';
-    else if(cfg.reine&&reine&&queenState.owner===turn) raison=qui+' GAGNE LA REINE';
-    else if(garde)                                     raison=qui+' REJOUE';
+    if(faute)                                          raison=tr('palet',qui);
+    else if(autres>0)                                  raison=tr('adverse',qui);
+    else if(cfg.reine&&queenState.pendingBy===turn)    raison=tr('couvreReine',qui);
+    else if(cfg.reine&&reine&&queenState.owner===turn) raison=tr('gagneReine',qui);
+    else if(garde)                                     raison=tr('rejoue',qui);
     if(raison) note(raison, turn);
   }
 
@@ -742,7 +848,7 @@ function endStroke(){
   if(turn!==before){
     bannerT=24;
     /* la main change : on annonce qui prend la suite */
-    if(!cfg.soloStrict) note('AU TOUR DE '+nomCote(turn),turn,ANNONCE);
+    if(!cfg.soloStrict) note(tr('tour',nomCote(turn)),turn,ANNONCE);
     if(mode==='duo') rotGoal = (turn==='B') ? Math.PI : 0;
   }
 }
@@ -816,7 +922,9 @@ function freeSpot(x,y,self){
 function remaining(side){ return discs.filter(d=>d.alive&&d.type===side).length; }
 function finish(side){
   phase='over';
-  bannerTxt = (mode==='solo') ? (side==='W'?'GAGNÉ !':'PERDU') : (side==='W'?'CLAIRS !':'FONCÉS !');
+  /* on retient la clef et non le mot : un changement de langue sur l'ecran de
+     fin doit se voir tout de suite */
+  bannerTxt = (mode==='solo') ? (side==='W'?'gagne':'perdu') : (side==='W'?'clairsGagne':'foncesGagne');
   bannerT=1e9;
   sndFin(mode!=='solo'||side==='W');
   majRecord(side);
@@ -975,7 +1083,7 @@ function sndFin(gagne){
 /* ===================== sauvegarde ===================== */
 let records={};
 function sauver(){
-  try{ localStorage.setItem('karom', JSON.stringify({level,fireMode,theme,son,surface,records})); }catch(e){}
+  try{ localStorage.setItem('karom', JSON.stringify({level,fireMode,theme,son,surface,langue,records})); }catch(e){}
 }
 function chargerSauvegarde(){
   try{
@@ -986,6 +1094,7 @@ function chargerSauvegarde(){
     if(d.theme===0||d.theme===1) theme=d.theme;
     if(d.son===0||d.son===1) son=d.son;
     if(d.surface===0||d.surface===1) surface=d.surface;
+    if(d.langue===0||d.langue===1) langue=d.langue;
     if(d.records&&typeof d.records==='object') records=d.records;
   }catch(e){}
 }
@@ -1020,9 +1129,9 @@ function btnSlots(){
   if(phase==='menu') return [];        /* les menus portent leurs propres boutons */
   if(phase==='over') return [];        /* la fin de partie a ses boutons sous le bandeau */
   if(pause) return [];                 /* en pause, tout est dans la fenetre */
-  const p={id:'pause',l:'PAUSE',ico:'pause'};
+  const p={id:'pause',l:tr('pause'),ico:'pause'};
   if(fireMode===0) return [p];
-  return [{id:'fire',l:'TIRER'},p];   /* TIRER reste indispensable dans ce mode */
+  return [{id:'fire',l:tr('tirer')},p];   /* TIRER reste indispensable dans ce mode */
 }
 function btnRects(){
   const sl=btnSlots(), n=sl.length, out=[];
@@ -1076,6 +1185,7 @@ function onDown(e){
           if(r.k==='jou') modeChoix=r.i;
           else if(r.k==='lvl') level=r.i;
           else if(r.k==='rev'){ surface=r.i; bg=null; }   /* le plateau se retrace */
+          else if(r.k==='lng') langue=r.i;
           else if(r.k==='the'){ theme=r.i; applyTheme(); }
           else if(r.k==='son') son=r.i?0:1;
           else fireMode=r.i;
@@ -1103,6 +1213,7 @@ function onDown(e){
         press={id:r.k+r.i,t:9};
         if(r.k==='lvl') level=r.i; else if(r.k==='tir') fireMode=r.i;
         else if(r.k==='rev'){ surface=r.i; bg=null; }
+        else if(r.k==='lng') langue=r.i;
         else if(r.k==='the'){ theme=r.i; applyTheme(); }
         else if(r.k==='son') son=r.i?0:1;
         sauver();
@@ -1628,22 +1739,22 @@ function drawTitre(g){
 
 /* Trois cases d'en-tete, dont le contenu depend du mode */
 function hudCases(){
-  const adv = mode==='solo'?'CPU':'JOUEUR 2';
+  const adv = mode==='solo'?tr('cpu'):tr('j2');
   const jetons = discs.filter(d=>d.alive&&d.type!=='Q').length;
   if(cfg.hud==='vider')
-    return {g:{lab:'TIRS',  who:'RESTANTS', val:Math.max(0,(cfg.tirs||0)-tirsFaits), col:cfg.teinte, cote:null},
-            d:{lab:'JETONS',who:'EN JEU',   val:jetons, col:P.wPiece, cote:null}, mil:'etoiles'};
+    return {g:{lab:tr('hTirs'),  who:tr('hRestants'), val:Math.max(0,(cfg.tirs||0)-tirsFaits), col:cfg.teinte, cote:null},
+            d:{lab:tr('hJetons'),who:tr('hEnJeu'),    val:jetons, col:P.wPiece, cote:null}, mil:'etoiles'};
   if(cfg.hud==='solo')
-    return {g:{lab:'SCORE', who:'JOUEUR 1', val:score.W, col:cfg.teinte, cote:'W'},
-            d:{lab:cfg.temps?'JETONS':'TIRS', who:cfg.temps?'EN JEU':'RESTANTS',
+    return {g:{lab:tr('hScore'), who:tr('j1'), val:score.W, col:cfg.teinte, cote:'W'},
+            d:{lab:cfg.temps?tr('hJetons'):tr('hTirs'), who:cfg.temps?tr('hEnJeu'):tr('hRestants'),
                val:cfg.temps?jetons:Math.max(0,(cfg.tirs||0)-tirsFaits), col:P.wPiece, cote:null},
             mil: cfg.temps?'temps':'combo'};
   if(cfg.hud==='points')
     /* tout le monde joue tous les jetons : pas de camp, donc pas de pastille de couleur */
-    return {g:{lab:'JOUEUR 1',who:'POINTS', val:score.W, col:cfg.teinte, cote:'W'},
-            d:{lab:adv,       who:'POINTS', val:score.B, col:cfg.teinte, cote:'B'}, mil:'cible'};
+    return {g:{lab:tr('j1'),who:tr('hPoints'), val:score.W, col:cfg.teinte, cote:'W'},
+            d:{lab:adv,      who:tr('hPoints'), val:score.B, col:cfg.teinte, cote:'B'}, mil:'cible'};
   /* le jeton dit deja la couleur du camp : la case n'affiche que le joueur */
-  return {g:{lab:'JOUEUR 1', who:null, val:remaining('W'), col:P.wPiece, cote:'W'},
+  return {g:{lab:tr('j1'), who:null, val:remaining('W'), col:P.wPiece, cote:'W'},
           d:{lab:adv,        who:null, val:remaining('B'), col:P.bPiece, cote:'B'}, mil:'reine'};
 }
 function mmss(ms){
@@ -1743,8 +1854,8 @@ function drawHud(g){
     pcircle(g,qc,iy+R(8*K),R(4*K),P.qEdge);
     pcircle(g,qc,iy+R(8*K),R(4*K)-1,(q&&q.alive)?P.qPiece:P.panel2);
     let qt='--';
-    if(queenState.owner) qt = queenState.owner==='W'?'CLA':(mode==='solo'?'ORD':'FON');
-    else if(queenState.pendingBy) qt='COUVRE';
+    if(queenState.owner) qt = queenState.owner==='W'?tr('qClairs'):(mode==='solo'?tr('qOrdi'):tr('qFonces'));
+    else if(queenState.pendingBy) qt=tr('qCouvre');
     stextC(g,qt,qc,iy+R(16*K),queenState.owner?couleurCote(queenState.owner):P.mute);
   } else if(H2.mil==='etoiles'){
     plate(g,qx,y,qw,h,P.panel,false);
@@ -1755,29 +1866,37 @@ function drawHud(g){
       const ex=qc+(i-1)*R(9*K);
       pcircle(g,ex,iy+R(8*K),R(3*K),i<acquis?cfg.teinte:P.panel2);
     }
-    stextC(g,'ETOILES',qc,iy+R(16*K),P.mute);
+    stextC(g,tr('hEtoiles'),qc,iy+R(16*K),P.mute);
   } else if(H2.mil==='temps'){
     plate(g,qx,y,qw,h,tempsMs<15000?P.panel2:P.panel,false);
     jtext(mmss(tempsMs),qc,iy+R(3*K),tempsMs<15000?cfg.teinte:P.pale,R(11*K),'j15','c');
-    stextC(g,'TEMPS',qc,iy+R(16*K),P.mute);
+    stextC(g,tr('hTemps'),qc,iy+R(16*K),P.mute);
   } else if(H2.mil==='combo'){
     plate(g,qx,y,qw,h,P.panel,false);
     const mult = cfg.combo ? cfg.combo[Math.min(Math.max(comboDernier,1),cfg.combo.length)-1] : 1;
     jtext('X'+mult,qc,iy+R(3*K),comboDernier>1?cfg.teinte:P.mute,R(11*K),'j15','c');
-    stextC(g,'COMBO',qc,iy+R(16*K),P.mute);
+    stextC(g,tr('hCombo'),qc,iy+R(16*K),P.mute);
   } else {
     plate(g,qx,y,qw,h,P.panel,false);
     jtext(String(cfg.cible||'--'),qc,iy+R(3*K),P.pale,R(11*K),'j15','c');
-    stextC(g,'CIBLE',qc,iy+R(16*K),P.mute);
+    stextC(g,tr('hCible'),qc,iy+R(16*K),P.mute);
   }
 }
 
 
 const RULES=[
- {t:'BUT DU JEU', l:'EMPOCHE TES 9 JETONS AVANT L ADVERSAIRE. LES CLAIRS COMMENCENT.'},
- {t:'LE COUP',    l:'PLACE LE PALET AVEC LA REGLETTE PLACE. VISE AVEC LE JETON DU BAS. TROIS MODES DE VISEE AU CHOIX DANS LES OPTIONS. SI TU EMPOCHES UN DES TIENS, TU REJOUES.'},
- {t:'LA REINE',   l:'LE JETON ROUGE EST LA REINE. APRES L AVOIR EMPOCHEE TU DOIS LA COUVRIR EN EMPOCHANT UN DES TIENS, SINON ELLE RETOURNE AU CENTRE.'},
- {t:'LA FAUTE',   l:'SI LE PALET TOMBE DANS UN TROU, UN DE TES JETONS REVIENT SUR LE PLATEAU ET TU PERDS LA MAIN.'}
+ {t:['BUT DU JEU','THE GOAL'],
+  l:['EMPOCHE TES 9 JETONS AVANT L ADVERSAIRE. LES CLAIRS COMMENCENT.',
+     'POT YOUR 9 PIECES BEFORE YOUR OPPONENT. THE LIGHT SIDE STARTS.']},
+ {t:['LE COUP','THE SHOT'],
+  l:['PLACE LE PALET AVEC LA REGLETTE PLACE. VISE AVEC LE JETON DU BAS. TROIS MODES DE VISEE AU CHOIX DANS LES OPTIONS. SI TU EMPOCHES UN DES TIENS, TU REJOUES.',
+     'SET THE STRIKER WITH THE SLIDER ON TOP. AIM WITH THE PIECE BELOW. IF YOU POT ONE OF YOURS, YOU PLAY AGAIN.']},
+ {t:['LA REINE','THE QUEEN'],
+  l:['LE JETON ROUGE EST LA REINE. APRES L AVOIR EMPOCHEE TU DOIS LA COUVRIR EN EMPOCHANT UN DES TIENS, SINON ELLE RETOURNE AU CENTRE.',
+     'THE RED PIECE IS THE QUEEN. ONCE POTTED YOU MUST COVER IT BY POTTING ONE OF YOURS, OR IT GOES BACK TO THE CENTRE.']},
+ {t:['LA FAUTE','THE FOUL'],
+  l:['SI LE PALET TOMBE DANS UN TROU, UN DE TES JETONS REVIENT SUR LE PLATEAU ET TU PERDS LA MAIN.',
+     'IF THE STRIKER FALLS INTO A POCKET, ONE OF YOUR PIECES RETURNS TO THE BOARD AND YOU LOSE THE TURN.']}
 ];
 function wrap(t,maxw){
   const words=norm(t,GS).split(' '); const out=[]; let ln='';
@@ -1836,25 +1955,39 @@ const BASE_CFG={
   hud:'camps',        /* camps | points | vider | solo */
   soloStrict:false    /* true = un seul joueur, la main ne passe jamais */
 };
+/* Chaque mode porte ses textes dans les deux langues, dans l'ordre du
+   dictionnaire : [francais, anglais]. */
 const MODES=[
-  {id:'classique', nom:'CLASSIQUE', desc:'LES REGLES DU CARROM',        j:'1-2', d:'10 MIN',
-   but:['EMPOCHE TOUS LES JETONS','DE TA COULEUR. LA REINE','DOIT ETRE COUVERTE PAR','UN JETON AU TIR SUIVANT.'], cfg:{}},
-  {id:'rapide',    nom:'PARTIE RAPIDE', desc:'PLUS COURT, PLUS SIMPLE', j:'1-2', d:'4 MIN',
-   but:['MEMES REGLES, CINQ JETONS','PAR CAMP. LA REINE SE','COUVRE DANS LE MEME TIR','ET LES FAUTES SONT DOUCES.'],
+  {id:'classique', nom:['CLASSIQUE','CLASSIC'],
+   desc:['LES REGLES DU CARROM','THE RULES OF CARROM'], j:'1-2', d:['10 MIN','10 MIN'],
+   but:[['EMPOCHE TOUS LES JETONS','DE TA COULEUR. LA REINE','DOIT ETRE COUVERTE PAR','UN JETON AU TIR SUIVANT.'],
+        ['POT ALL THE PIECES','OF YOUR COLOUR. THE QUEEN','MUST BE COVERED BY','A PIECE ON THE NEXT SHOT.']], cfg:{}},
+  {id:'rapide',    nom:['PARTIE RAPIDE','QUICK GAME'],
+   desc:['PLUS COURT, PLUS SIMPLE','SHORTER AND SIMPLER'], j:'1-2', d:['4 MIN','4 MIN'],
+   but:[['MEMES REGLES, CINQ JETONS','PAR CAMP. LA REINE SE','COUVRE DANS LE MEME TIR','ET LES FAUTES SONT DOUCES.'],
+        ['SAME RULES, FIVE PIECES','PER SIDE. THE QUEEN IS','COVERED ON THE SAME SHOT','AND FOULS ARE MILD.']],
    cfg:{pions:5, couvrir:'meme', fauteRetour:false}},
-  {id:'points',    nom:'POINTS', desc:'TOUS LES JETONS COMPTENT',       j:'1-2', d:'8 MIN',
-   but:['AUCUNE COULEUR ATTITREE.','CHACUN EMPOCHE CE QU IL','VEUT. NOIR 1, BLANC 2,','REINE 5. CIBLE : 15 POINTS.'],
+  {id:'points',    nom:['POINTS','POINTS'],
+   desc:['TOUS LES JETONS COMPTENT','EVERY PIECE COUNTS'], j:'1-2', d:['8 MIN','8 MIN'],
+   but:[['AUCUNE COULEUR ATTITREE.','CHACUN EMPOCHE CE QU IL','VEUT. NOIR 1, BLANC 2,','REINE 5. CIBLE : 15 POINTS.'],
+        ['NO COLOUR IS ASSIGNED.','POT WHATEVER YOU LIKE.','DARK 1, LIGHT 2, QUEEN 5.','TARGET : 15 POINTS.']],
    cfg:{but:'points', adverse:'reste', advTour:false, cible:15, hud:'points'}},
-  {id:'nettoyage', nom:'NETTOYAGE', desc:'VIDER LE PLATEAU EN N TIRS',  j:'1',   d:'5 MIN',
-   but:['SEUL CONTRE LE PLATEAU.','VIDE LE EN VINGT TIRS.','DIX TIRS OU MOINS ET TU','DECROCHES TROIS ETOILES.'],
+  {id:'nettoyage', nom:['NETTOYAGE','CLEAN SWEEP'],
+   desc:['VIDER LE PLATEAU EN N TIRS','CLEAR THE BOARD IN N SHOTS'], j:'1', d:['5 MIN','5 MIN'],
+   but:[['SEUL CONTRE LE PLATEAU.','VIDE LE EN VINGT TIRS.','DIX TIRS OU MOINS ET TU','DECROCHES TROIS ETOILES.'],
+        ['ALONE AGAINST THE BOARD.','CLEAR IT IN TWENTY SHOTS.','TEN SHOTS OR FEWER AND','YOU EARN THREE STARS.']],
    cfg:{but:'vider', pions:5, reine:false, advTour:false, tirs:20, etoiles:[10,14,20],
         camps:false, hud:'vider', soloStrict:true}},
-  {id:'combo',     nom:'COMBO', desc:'PLUSIEURS JETONS D UN COUP',      j:'1',   d:'5 MIN',
-   but:['CHAQUE JETON DE PLUS DANS','LE MEME TIR DOUBLE LA MISE.','DEUX X2, TROIS X4,','QUATRE ET PLUS X8.'],
+  {id:'combo',     nom:['COMBO','COMBO'],
+   desc:['PLUSIEURS JETONS D UN COUP','SEVERAL PIECES AT ONCE'], j:'1', d:['5 MIN','5 MIN'],
+   but:[['CHAQUE JETON DE PLUS DANS','LE MEME TIR DOUBLE LA MISE.','DEUX X2, TROIS X4,','QUATRE ET PLUS X8.'],
+        ['EACH EXTRA PIECE IN THE','SAME SHOT DOUBLES THE PRIZE.','TWO X2, THREE X4,','FOUR OR MORE X8.']],
    cfg:{but:'points', advTour:false, tirs:15, combo:[1,2,4,8], reine:false,
         camps:false, hud:'solo', soloStrict:true}},
-  {id:'montre',    nom:'CONTRE LA MONTRE', desc:'MARQUER AVANT LA FIN', j:'1',   d:'2 MIN',
-   but:['DEUX MINUTES POUR MARQUER','LE PLUS POSSIBLE. CHAQUE','JETON EMPOCHE TE REND','QUATRE SECONDES.'],
+  {id:'montre',    nom:['CONTRE LA MONTRE','TIME ATTACK'],
+   desc:['MARQUER AVANT LA FIN','SCORE BEFORE TIME RUNS OUT'], j:'1', d:['2 MIN','2 MIN'],
+   but:[['DEUX MINUTES POUR MARQUER','LE PLUS POSSIBLE. CHAQUE','JETON EMPOCHE TE REND','QUATRE SECONDES.'],
+        ['TWO MINUTES TO SCORE AS','MUCH AS YOU CAN. EACH','PIECE YOU POT GIVES YOU','FOUR SECONDS BACK.']],
    cfg:{but:'points', advTour:false, temps:120, bonusTemps:4, reine:false,
         camps:false, hud:'solo', soloStrict:true}}
 ];
@@ -1869,7 +2002,7 @@ function chargerMode(id){
   if(cfg.soloStrict) modeChoix=0;
 }
 function modeCourant(){ return MODES.find(x=>x.id===modeId)||MODES[0]; }
-const TOUTES_OPTIONS=[{k:'jou',t:'JOUEURS',n:2},{k:'lvl',t:'DIFFICULTE',n:3},{k:'tir',t:'DECLENCHEMENT',n:2},{k:'rev',t:'REVÊTEMENT',n:2},{k:'the',t:'THEME',n:2},{k:'son',t:'SON',n:2}];
+const TOUTES_OPTIONS=[{k:'jou',t:'optJoueurs',n:2},{k:'lvl',t:'optNiveau',n:3},{k:'tir',t:'optTir',n:2},{k:'rev',t:'optRev',n:2},{k:'the',t:'optTheme',n:2},{k:'son',t:'optSon',n:2},{k:'lng',t:'optLangue',n:2}];
 /* un mode solo n'affiche ni le nombre de joueurs ni la difficulte de l'ordinateur */
 function OPTROWS_(){
   const l = cfg.soloStrict ? TOUTES_OPTIONS.filter(r=>r.k!=='jou'&&r.k!=='lvl') : TOUTES_OPTIONS;
@@ -1907,10 +2040,10 @@ function menuTitre(g){
   g.fillStyle='rgba(10,8,6,.45)'; g.fillRect(u.p.x+R(3*K),u.p.y+R(4*K),u.p.w,u.p.h);
   g.fillStyle=P.panel; g.fillRect(u.p.x,u.p.y,u.p.w,u.p.h);
   hair(g,u.p.x,u.p.y,u.p.w,u.p.h,P.panel2);
-  jtext(m.nom,BW/2,u.p.y+R(8*K),P.accent,R(11*K),'j15','c');
-  stextC(g,m.j+' JOUEUR'+(m.j==='1'?'':'S')+'    '+m.d,BW/2,u.p.y+R(26*K),P.mute);
+  jtext(m.nom[langue],BW/2,u.p.y+R(8*K),P.accent,R(11*K),'j15','c');
+  stextC(g,tr('nbJoueurs',m.j,m.j==='1'?'':'S',m.d[langue]),BW/2,u.p.y+R(26*K),P.mute);
   g.fillStyle=P.panel2; g.fillRect(u.p.x+R(12*K),u.p.y+R(36*K),u.p.w-R(24*K),1);
-  (m.but||[m.desc]).forEach((l,k)=>stextC(g,l,BW/2,u.p.y+R(44*K)+k*R(12*K),P.pale));
+  (m.but?m.but[langue]:[m.desc[langue]]).forEach((l,k)=>stextC(g,l,BW/2,u.p.y+R(44*K)+k*R(12*K),P.pale));
   const res=resumeRegles();
   g.fillStyle=P.panel2; g.fillRect(u.p.x+R(12*K),u.p.y+R(96*K),u.p.w-R(24*K),1);
   res.forEach((l,k)=>stextC(g,l,BW/2,u.p.y+R(104*K)+k*R(9*K),P.mute));
@@ -1932,9 +2065,9 @@ function menuTitre(g){
   pring(g,ci,cj,R(8*K),P.sRed); pcircle(g,ci,cj,R(2*K),P.sRed);
   /* R(11*K) tombe sur le meme cran de la grille aux trois densites : le mot
      garde la meme taille d'un telephone a l'autre */
-  jtext('START',b.x+b.w/2,jmid(b.y+ds,b.h,R(11*K),'j15'),hs?P.edge:P.sRed,R(11*K),'j15','c');
+  jtext(tr('start'),b.x+b.w/2,jmid(b.y+ds,b.h,R(11*K),'j15'),hs?P.edge:P.sRed,R(11*K),'j15','c');
 
-  for(const [z,lab,id] of [[u.regl,'REGLAGES','set'],[u.regles,'REGLES','rules']]){
+  for(const [z,lab,id] of [[u.regl,tr('reglages'),'set'],[u.regles,tr('regles'),'rules']]){
     const hit=press.id===id&&press.t>0, dy=hit?R(2*K):0;
     g.fillStyle=hit?P.panel2:P.panel; g.fillRect(z.x,z.y+dy,z.w,z.h);
     hair(g,z.x,z.y+dy,z.w,z.h,hit?P.accent:P.panel2);
@@ -1953,13 +2086,16 @@ function menuMode(g){
   g.fillStyle='rgba(10,8,6,.45)'; g.fillRect(u.wx+R(3*K),u.wy+R(4*K),u.ww,u.wh);
   g.fillStyle=P.panel;            g.fillRect(u.wx,u.wy,u.ww,u.wh);
   hair(g,u.wx,u.wy,u.ww,u.wh,P.panel2);
-  jtext(pause?'PAUSE':'REGLAGES',BW/2,u.wy+R(11*K),P.accent,R(8*K),'j25','c');
-  const noms={jou:['1 JOUEUR','2 JOUEURS'], lvl:LEVELS.map(l=>l.n), tir:['AU RELACHER','AU BOUTON'],
-              rev:['BOIS','MARBRE'], the:THEMES.map(t=>t.n), son:['AVEC','SANS']};
-  OPTROWS_().forEach((row,i)=>stext(g,row.t,u.wx+R(10*K),u.row0+i*u.step-R(11*K),P.mute));
+  jtext(pause?tr('pause'):tr('reglages'),BW/2,u.wy+R(11*K),P.accent,R(8*K),'j25','c');
+  const noms={jou:[tr('unJoueur'),tr('deuxJoueurs')], lvl:LEVELS.map(l=>tr(l.n)),
+              tir:[tr('auRelacher'),tr('auBouton')], rev:[tr('bois'),tr('marbre')],
+              the:THEMES.map(x=>tr(x.n)), son:[tr('avec'),tr('sans')],
+              lng:TXT.langue.slice()};
+  OPTROWS_().forEach((row,i)=>stext(g,tr(row.t),u.wx+R(10*K),u.row0+i*u.step-u.dLab,P.mute));
   for(const o of optRectsLocal()){
     const on = o.k==='jou' ? o.i===modeChoix : o.k==='lvl' ? o.i===level : o.k==='rev' ? o.i===surface
-             : o.k==='the' ? o.i===theme : o.k==='son' ? o.i===(son?0:1) : o.i===fireMode;
+             : o.k==='lng' ? o.i===langue : o.k==='the' ? o.i===theme
+             : o.k==='son' ? o.i===(son?0:1) : o.i===fireMode;
     const hit = press.id===o.k+o.i && press.t>0, dy=hit?R(2*K):0;
     g.fillStyle = on?P.accent:(hit?P.panel2:P.bg); g.fillRect(o.x,o.y+dy,o.w,o.h);
     hair(g,o.x,o.y+dy,o.w,o.h,(on||hit)?P.accent:P.panel2);
@@ -1967,8 +2103,8 @@ function menuMode(g){
   }
   /* le bouton appartient a la fenetre, pas a la barre du bas */
   const paires = pause
-    ? [[u.btn,'REPRENDRE','fen-back'],[u.btn2,'REJOUER','fen-again'],[u.btn3,'MENU','fen-menu']]
-    : [[u.btn,'RETOUR','fen-back']];
+    ? [[u.btn,tr('reprendre'),'fen-back'],[u.btn2,tr('rejouer'),'fen-again'],[u.btn3,tr('menu'),'fen-menu']]
+    : [[u.btn,tr('retour'),'fen-back']];
   for(const [b,lab,id] of paires){
     const hit=press.id===id&&press.t>0, dy=hit?R(2*K):0;
     g.fillStyle=hit?P.accent:P.bg; g.fillRect(b.x,b.y+dy,b.w,b.h);
@@ -1995,11 +2131,11 @@ function menuRegles(g){
   g.fillStyle='rgba(10,8,6,.45)'; g.fillRect(u.wx+R(3*K),u.wy+R(4*K),u.ww,u.wh);
   g.fillStyle=P.panel;            g.fillRect(u.wx,u.wy,u.ww,u.wh);
   hair(g,u.wx,u.wy,u.ww,u.wh,P.panel2);
-  jtext(r.t,BW/2,u.wy+R(10*K),P.accent,R(8*K),'j25','c');
+  jtext(r.t[langue],BW/2,u.wy+R(10*K),P.accent,R(8*K),'j25','c');
   g.fillStyle=P.panel2; g.fillRect(u.wx+R(14*K),u.wy+R(28*K),u.ww-R(28*K),1);
-  wrap(r.l,u.ww-R(24*K)).forEach((ln,i)=>stextC(g,ln,BW/2,u.wy+R(38*K)+i*(GH+R(3*K)),P.pale));
-  stextC(g,'PAGE '+(rulePage+1)+' / '+RULES.length,BW/2,u.prev.y-R(11*K),P.mute);
-  for(const [z,lab,id] of [[u.prev,'<','fen-prev'],[u.back,'RETOUR','fen-back'],[u.next,'>','fen-next']]){
+  wrap(r.l[langue],u.ww-R(24*K)).forEach((ln,i)=>stextC(g,ln,BW/2,u.wy+R(38*K)+i*(GH+R(3*K)),P.pale));
+  stextC(g,tr('page',rulePage+1,RULES.length),BW/2,u.prev.y-R(11*K),P.mute);
+  for(const [z,lab,id] of [[u.prev,'<','fen-prev'],[u.back,tr('retour'),'fen-back'],[u.next,'>','fen-next']]){
     const hit=press.id===id&&press.t>0, dy=hit?R(2*K):0;
     g.fillStyle=hit?P.accent:P.bg; g.fillRect(z.x,z.y+dy,z.w,z.h);
     hair(g,z.x,z.y+dy,z.w,z.h,hit?P.accent:P.panel2);
@@ -2171,8 +2307,8 @@ function drawBanner(g){
   g.fillStyle=P.edge;   g.fillRect(0,u.yc-3,BUF,u.h+6);
   g.fillStyle=P.panel2; g.fillRect(0,u.yc,BUF,u.h);
   g.fillStyle=P.accent; g.fillRect(0,u.yc,BUF,1); g.fillRect(0,u.yc+u.h-1,BUF,1);
-  jtext(bannerTxt,BUF/2,jmid(u.yTxt,u.hTxt,R(18*K),'j25'),P.accent,R(18*K),'j25','c');
-  for(const [b,lab,id] of [[u.menu,'MENU','fin-menu'],[u.again,'REJOUER','fin-again']]){
+  jtext(tr(bannerTxt),BUF/2,jmid(u.yTxt,u.hTxt,R(18*K),'j25'),P.accent,R(18*K),'j25','c');
+  for(const [b,lab,id] of [[u.menu,tr('menu'),'fin-menu'],[u.again,tr('rejouer'),'fin-again']]){
     const hit=press.id===id&&press.t>0, dy=hit?R(2*K):0;
     g.fillStyle=hit?P.accent:P.panel; g.fillRect(b.x,b.y+dy,b.w,b.h);
     hair(g,b.x,b.y+dy,b.w,b.h,hit?P.accent:P.panel2);
