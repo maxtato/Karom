@@ -1,8 +1,14 @@
 # Karom
 
-Jeu de carrom en pixel art, jouable au doigt comme à la souris. Tout tient
-dans un seul fichier `index.html` : moteur physique, rendu pixel, polices
-embarquées, sons synthétisés.
+Jeu de carrom arcade, jouable au doigt comme à la souris. Tout tient
+dans un seul fichier `index.html` : moteur physique, rendu haute définition, interface cyan et orange, sons synthétisés.
+
+## Design arcade
+
+Plateau bleu et crème, jetons en relief, reine rouge et palet ivoire, visée lumineuse,
+menus et scores assortis. Les règles, les collisions et les dimensions physiques
+restent identiques. Le bouton de tir est proposé par défaut aux nouveaux joueurs ;
+les réglages enregistrés sont conservés.
 
 ## Modes de jeu
 
