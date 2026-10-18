@@ -1,26 +1,15 @@
 # Karom
 
-Jeu de carrom arcade, jouable au doigt comme à la souris. Tout tient
-dans un seul fichier `index.html` : moteur physique, rendu haute définition, interface cyan et orange, sons synthétisés.
+Jeu original de carrom en pixel art. Physique, dimensions, commandes et six modes originaux conservés.
 
-## Design arcade
+## Styles visuels
 
-Plateau et logo 3D issus de la maquette validée, embarqués en WebP dans le HTML.
-Le jeu reste autonome et fonctionne sans chargement réseau. Un plateau vectoriel
-prend le relais pendant le décodage des images ; le marbre reste disponible.
-Les pions utilisent des sprites calculés et mis en cache, avec tranches épaisses,
-biseaux et ombres. Le rayon des pions passe de 16 à 27, le palet de 21 à 36 et
-les trous de 20 à 40 unités. Les collisions utilisent ces mêmes dimensions.
-Les six modes et leurs règles restent disponibles.
+Réglages > Style du plateau : bois, marbre, fluo, plastique, arcade et pastel.
+Les styles changent le plateau, les pions et les accents. Choix enregistré automatiquement,
+modifiable depuis la pause. Le thème clair ou sombre reste indépendant.
 
-Commandes : placement avec la réglette, visée directement sur le plateau ou
-avec le curseur, puissance réglable dans la jauge, bouton Tirer. Le déclenchement
-au relâcher reste accessible dans les réglages. La pause se trouve en haut à droite.
-Les préférences et records enregistrés sont conservés.
-
-Validation Chromium : lancement depuis l'accueil, placement, visée, puissance,
-tir et fin de mouvement, pause et reprise, six modes, thèmes et surfaces,
-français et anglais, formats 390×844, 375×667 et 844×390. Aucune exception navigateur.
+Validation Chromium : sélection des six styles avec les vrais boutons, lancement des six modes,
+aucune exception JavaScript. Fichier autonome et script de déploiement synchronisés.
 
 ## Modes de jeu
 
