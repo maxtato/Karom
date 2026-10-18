@@ -103,7 +103,7 @@ const TXT={
   optJoueurs:  ['JOUEURS','PLAYERS'],
   optNiveau:   ['DIFFICULTE','DIFFICULTY'],
   optTir:      ['DECLENCHEMENT','TRIGGER'],
-  optRev:      ['REVÊTEMENT','SURFACE'],
+  optRev:      ['STYLE DU PLATEAU','BOARD STYLE'],
   optTheme:    ['THEME','THEME'],
   optSon:      ['SON','SOUND'],
   optLangue:   ['LANGUE','LANGUAGE'],
@@ -240,6 +240,17 @@ const P={
   aim:'#3A2010'
 };
 
+
+const ORIGINAL_PALETTE={...P};
+const STYLES=[
+ {name:['BOIS','WOOD'],c:{}},
+ {name:['MARBRE','MARBLE'],c:{wood:'#59645F',woodHi:'#929E97',woodLo:'#303C37',ink:'#263F35',wPiece:'#FFFFFF',wEdge:'#82958A',bPiece:'#273E35',bEdge:'#0F241B',qPiece:'#BA7955',qEdge:'#6F402C'}},
+ {name:['FLUO','NEON'],c:{wood:'#171B30',woodHi:'#313954',woodLo:'#050710',felt:'#080C16',feltHi:'#080C16',feltLo:'#080C16',ink:'#3C778B',red:'#F452CF',green:'#26E5F1',wPiece:'#59FFAD',wEdge:'#14835D',bPiece:'#F452CF',bEdge:'#8B236E',qPiece:'#FFF36A',qEdge:'#9B8228',sBody:'#55E7FF',sEdge:'#16718C',sRed:'#FFFFFF',aim:'#A7FFE9',accent:'#59FFAD',g1:'#153D30',g2:'#207954',g3:'#36B780',g4:'#59FFAD'}},
+ {name:['PLASTIQUE','PLASTIC'],c:{wood:'#1663D6',woodHi:'#4C9CFF',woodLo:'#073B94',felt:'#2581ED',feltHi:'#2581ED',feltLo:'#2581ED',ink:'#0A489B',red:'#FFDC26',green:'#FF5253',wPiece:'#FFDF26',wEdge:'#BE8B06',bPiece:'#F54B45',bEdge:'#9D2425',qPiece:'#F9F5DF',qEdge:'#A4A19A',sBody:'#77F1B4',sEdge:'#24875F',sRed:'#124A36',aim:'#FFFFFF',accent:'#FFDF26',g1:'#5A4B11',g2:'#9B7D15',g3:'#D5B320',g4:'#FFDF26'}},
+ {name:['ARCADE','ARCADE'],c:{wood:'#332356',woodHi:'#674B8F',woodLo:'#1B122F',felt:'#191B36',feltHi:'#191B36',feltLo:'#191B36',ink:'#675887',red:'#FF9C42',green:'#A391ED',wPiece:'#49E2ED',wEdge:'#227F9E',bPiece:'#FF9C42',bEdge:'#A44E20',qPiece:'#FF69B4',qEdge:'#8E3265',sBody:'#EAE0FF',sEdge:'#8B78BA',sRed:'#8850CD',aim:'#BDA9FF',accent:'#BDA9FF',g1:'#34274F',g2:'#685091',g3:'#9473C9',g4:'#BDA9FF'}},
+ {name:['PASTEL','PASTEL'],c:{wood:'#9FBDB5',woodHi:'#C9DFD6',woodLo:'#638B80',felt:'#F3EADF',feltHi:'#F3EADF',feltLo:'#F3EADF',ink:'#748E88',red:'#D6879B',green:'#7DAFA4',wPiece:'#F2A8BC',wEdge:'#B26882',bPiece:'#7BB9D8',bEdge:'#3E7695',qPiece:'#E9BE5D',qEdge:'#9B782F',sBody:'#B6A4DC',sEdge:'#77619A',sRed:'#FFF8ED',aim:'#685B87',accent:'#B6A4DC',g1:'#40364F',g2:'#6A587F',g3:'#9180B1',g4:'#B6A4DC'}}
+];
+
 /* ===================== polices ===================== */
 /* texte courant 5x7 */
 const FS={
@@ -371,8 +382,10 @@ const THEMES=[
 ];
 let theme=0;
 function applyTheme(){
+  Object.assign(P,ORIGINAL_PALETTE);
   const t=THEMES[theme];
   for(const k in t.c) P[k]=t.c[k];
+  Object.assign(P,STYLES[surface].c);
   bg=null;                                   /* le plateau depend de P.bg dans ses coins */
   const b=document.body;
   /* fond uni, sans quadrillage : la marge du haut doit se confondre avec le
@@ -1093,7 +1106,7 @@ function chargerSauvegarde(){
     if(d.fireMode===0||d.fireMode===1) fireMode=d.fireMode;
     if(d.theme===0||d.theme===1) theme=d.theme;
     if(d.son===0||d.son===1) son=d.son;
-    if(d.surface===0||d.surface===1) surface=d.surface;
+    if(Number.isInteger(d.surface)&&d.surface>=0&&d.surface<STYLES.length) surface=d.surface;
     if(d.langue===0||d.langue===1) langue=d.langue;
     if(d.records&&typeof d.records==='object') records=d.records;
   }catch(e){}
@@ -1184,7 +1197,7 @@ function onDown(e){
           press={id:r.k+r.i,t:9};
           if(r.k==='jou') modeChoix=r.i;
           else if(r.k==='lvl') level=r.i;
-          else if(r.k==='rev'){ surface=r.i; bg=null; }   /* le plateau se retrace */
+          else if(r.k==='rev'){ surface=r.i; applyTheme(); }   /* le plateau se retrace */
           else if(r.k==='lng') langue=r.i;
           else if(r.k==='the'){ theme=r.i; applyTheme(); }
           else if(r.k==='son') son=r.i?0:1;
@@ -1212,7 +1225,7 @@ function onDown(e){
       if(c.cx>=r.x&&c.cx<=r.x+r.w&&c.cy>=r.y&&c.cy<=r.y+r.h){
         press={id:r.k+r.i,t:9};
         if(r.k==='lvl') level=r.i; else if(r.k==='tir') fireMode=r.i;
-        else if(r.k==='rev'){ surface=r.i; bg=null; }
+        else if(r.k==='rev'){ surface=r.i; applyTheme(); }
         else if(r.k==='lng') langue=r.i;
         else if(r.k==='the'){ theme=r.i; applyTheme(); }
         else if(r.k==='son') son=r.i?0:1;
@@ -1467,7 +1480,7 @@ function buildBg(){
     g.fillRect(i,1,1,F-1); g.fillRect(i,E-F,1,F-1);
   };
   const CLAIR='rgba(255,236,206,', SOMBRE='rgba(0,0,0,';
-  for(let i=2;i<E-2;i++){
+  for(let i=2;surface<2&&i<E-2;i++){
     let n, a=0.05, b=0.09;
     if(WOOD===0){ n=Math.sin(i*0.9)+Math.sin(i*0.21)*1.4+Math.sin(i*2.3)*0.5; }
     else if(WOOD===1){ n=Math.sin(i*2.1)+Math.sin(i*0.53)*1.1; a=0.04; b=0.06; }
@@ -1486,7 +1499,7 @@ function buildBg(){
   g.fillStyle='rgba(255,236,206,.05)'; g.fillRect(0,0,E,F); g.fillRect(0,0,F,E);
   g.fillStyle='rgba(0,0,0,.09)';       g.fillRect(0,E-F,E,F); g.fillRect(E-F,0,F,E);
   /* petite texture de surface sur le bois */
-  grain(g,0,0,E,E, TEX===2?0.16:(TEX?0.10:0), 'rgba(255,236,206,'+(TEX===2?0.075:0.05)+')',
+  if(surface<2) grain(g,0,0,E,E, TEX===2?0.16:(TEX?0.10:0), 'rgba(255,236,206,'+(TEX===2?0.075:0.05)+')',
                                               'rgba(0,0,0,'+(TEX===2?0.10:0.07)+')');
   g.fillStyle=P.woodLo;
   pline(g,0,0,F,F,P.woodLo); pline(g,E-1,0,E-1-F,F,P.woodLo);
@@ -1502,15 +1515,24 @@ function buildBg(){
                                                     'rgba(20,32,24,0.09)');
   } else {
     g.fillStyle=felt; g.fillRect(F,F,E-2*F,E-2*F);
-    for(let x=F;x<E-F;x++){
+    for(let x=F;surface===0&&x<E-F;x++){
       const n=Math.sin(x*0.31)*1.2+Math.sin(x*1.13)+Math.sin(x*0.07)*1.5;
       if(n>1.6){ g.fillStyle=feltH; g.fillRect(x,F,1,E-2*F); }
       else if(n<-1.9){ g.fillStyle=feltL; g.fillRect(x,F,1,E-2*F); }
     }
-    grain(g,F,F,E-F,E-F, TEX===2?0.14:(TEX?0.09:0), 'rgba(255,252,236,'+(TEX===2?0.10:0.065)+')',
+    if(surface===0) grain(g,F,F,E-F,E-F, TEX===2?0.14:(TEX?0.09:0), 'rgba(255,252,236,'+(TEX===2?0.10:0.065)+')',
                                                     'rgba(90,60,20,'+(TEX===2?0.075:0.05)+')');
   }
 
+  if(surface===3){
+    g.fillStyle='rgba(255,255,255,.16)';g.fillRect(F,F,E-2*F,2);
+    g.fillStyle='rgba(0,20,90,.17)';g.fillRect(F,E-F-3,E-2*F,3);
+  }
+  if(surface===4){
+    for(let i=F;i<E-F;i+=R(16*K)){
+      pline(g,i,F,i,E-F,'#222440');pline(g,F,i,E-F,i,'#222440');
+    }
+  }
   const bo=R(BAND_O*S), bi=R(BAND_I*S);
   const o0=bo, o1=BW-bo, i0=bi, i1=BW-bi;
 
@@ -2002,7 +2024,7 @@ function chargerMode(id){
   if(cfg.soloStrict) modeChoix=0;
 }
 function modeCourant(){ return MODES.find(x=>x.id===modeId)||MODES[0]; }
-const TOUTES_OPTIONS=[{k:'jou',t:'optJoueurs',n:2},{k:'lvl',t:'optNiveau',n:3},{k:'tir',t:'optTir',n:2},{k:'rev',t:'optRev',n:2},{k:'the',t:'optTheme',n:2},{k:'son',t:'optSon',n:2},{k:'lng',t:'optLangue',n:2}];
+const TOUTES_OPTIONS=[{k:'jou',t:'optJoueurs',n:2},{k:'lvl',t:'optNiveau',n:3},{k:'tir',t:'optTir',n:2},{k:'rev',t:'optRev',n:3},{k:'rev',t:'optRev',n:3,offset:3},{k:'the',t:'optTheme',n:2},{k:'son',t:'optSon',n:2},{k:'lng',t:'optLangue',n:2}];
 /* un mode solo n'affiche ni le nombre de joueurs ni la difficulte de l'ordinateur */
 function OPTROWS_(){
   const l = cfg.soloStrict ? TOUTES_OPTIONS.filter(r=>r.k!=='jou'&&r.k!=='lvl') : TOUTES_OPTIONS;
@@ -2013,7 +2035,7 @@ function optRectsLocal(){
   const large=BW-2*pad;   /* le plateau, pas le canvas : la fenetre y est calee */
   OPTROWS_().forEach((row,r2)=>{
     const w=Math.floor((large-gap*(row.n-1))/row.n), y=u.row0+r2*u.step;
-    for(let i=0;i<row.n;i++) out.push({k:row.k,i,x:pad+i*(w+gap),y,w,h});
+    for(let i=0;i<row.n;i++) out.push({k:row.k,i:i+(row.offset||0),x:pad+i*(w+gap),y,w,h});
   });
   return out;
 }
@@ -2088,10 +2110,10 @@ function menuMode(g){
   hair(g,u.wx,u.wy,u.ww,u.wh,P.panel2);
   jtext(pause?tr('pause'):tr('reglages'),BW/2,u.wy+R(11*K),P.accent,R(8*K),'j25','c');
   const noms={jou:[tr('unJoueur'),tr('deuxJoueurs')], lvl:LEVELS.map(l=>tr(l.n)),
-              tir:[tr('auRelacher'),tr('auBouton')], rev:[tr('bois'),tr('marbre')],
+              tir:[tr('auRelacher'),tr('auBouton')], rev:STYLES.map(x=>x.name[langue]),
               the:THEMES.map(x=>tr(x.n)), son:[tr('avec'),tr('sans')],
               lng:TXT.langue.slice()};
-  OPTROWS_().forEach((row,i)=>stext(g,tr(row.t),u.wx+R(10*K),u.row0+i*u.step-u.dLab,P.mute));
+  OPTROWS_().forEach((row,i)=>stext(g,row.offset?'':tr(row.t),u.wx+R(10*K),u.row0+i*u.step-u.dLab,P.mute));
   for(const o of optRectsLocal()){
     const on = o.k==='jou' ? o.i===modeChoix : o.k==='lvl' ? o.i===level : o.k==='rev' ? o.i===surface
              : o.k==='lng' ? o.i===langue : o.k==='the' ? o.i===theme
@@ -2332,11 +2354,15 @@ function disc(g,d){
   else if(d.type==='W'){ body=P.wPiece; edge=P.wEdge; }
   else if(d.type==='Q'){ body=P.qPiece; edge=P.qEdge; }
   else { body=P.bPiece; edge=P.bEdge; }
+  if(surface===2){
+    g.save();g.globalAlpha=.12;pcircle(g,cx,cy,r+3,body);g.restore();
+  }
   const om=versLumiere(K,2*K);
   pcircle(g,cx+om.x,cy+om.y,r+1,'rgba(24,14,4,.10)');
   pcircle(g,cx+om.x,cy+om.y,r,'rgba(24,14,4,.22)');
   pcircle(g,cx,cy,r,edge);
   pcircle(g,cx,cy,r-1,body);
+  if(surface===3&&d.type!=='S') pring(g,cx,cy,Math.max(1,r-3),edge);
   if(d.type==='S'){ pring(g,cx,cy,Math.max(1,r-2),P.sRed); g.fillStyle=P.sRed; g.fillRect(Math.round(cx),Math.round(cy),1,1); }
   else {
     g.fillStyle = d.type==='B' ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.75)';

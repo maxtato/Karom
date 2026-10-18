@@ -1,8 +1,15 @@
 # Karom
 
-Jeu de carrom en pixel art, jouable au doigt comme à la souris. Tout tient
-dans un seul fichier `index.html` : moteur physique, rendu pixel, polices
-embarquées, sons synthétisés.
+Jeu original de carrom en pixel art. Physique, dimensions, commandes et six modes originaux conservés.
+
+## Styles visuels
+
+Réglages > Style du plateau : bois, marbre, fluo, plastique, arcade et pastel.
+Les styles changent le plateau, les pions et les accents. Choix enregistré automatiquement,
+modifiable depuis la pause. Le thème clair ou sombre reste indépendant.
+
+Validation Chromium : sélection des six styles avec les vrais boutons, lancement des six modes,
+aucune exception JavaScript. Fichier autonome et script de déploiement synchronisés.
 
 ## Modes de jeu
 
