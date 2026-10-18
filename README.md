@@ -5,10 +5,22 @@ dans un seul fichier `index.html` : moteur physique, rendu haute définition, in
 
 ## Design arcade
 
-Plateau bleu et crème, jetons en relief, reine rouge et palet ivoire, visée lumineuse,
-menus et scores assortis. Les règles, les collisions et les dimensions physiques
-restent identiques. Le bouton de tir est proposé par défaut aux nouveaux joueurs ;
-les réglages enregistrés sont conservés.
+Plateau et logo 3D issus de la maquette validée, embarqués en WebP dans le HTML.
+Le jeu reste autonome et fonctionne sans chargement réseau. Un plateau vectoriel
+prend le relais pendant le décodage des images ; le marbre reste disponible.
+Les pions utilisent des sprites calculés et mis en cache, avec tranches épaisses,
+biseaux et ombres. Le rayon des pions passe de 16 à 27, le palet de 21 à 36 et
+les trous de 20 à 40 unités. Les collisions utilisent ces mêmes dimensions.
+Les six modes et leurs règles restent disponibles.
+
+Commandes : placement avec la réglette, visée directement sur le plateau ou
+avec le curseur, puissance réglable dans la jauge, bouton Tirer. Le déclenchement
+au relâcher reste accessible dans les réglages. La pause se trouve en haut à droite.
+Les préférences et records enregistrés sont conservés.
+
+Validation Chromium : lancement depuis l'accueil, placement, visée, puissance,
+tir et fin de mouvement, pause et reprise, six modes, thèmes et surfaces,
+français et anglais, formats 390×844, 375×667 et 844×390. Aucune exception navigateur.
 
 ## Modes de jeu
 
